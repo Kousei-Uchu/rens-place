@@ -181,14 +181,42 @@
     }
     return out;
   }
-  function build(opt) { return shrink(buildSource(opt)); }
+  /* ---- finishing touches, applied after shrinking (the scene only; editor.html shows the raw art) ----
+     outline: the outer silhouette gets a deeper blue than the lines drawn inside the body, so he stops looking like a sticker.
+     rim:     pixels on the right-hand edge (towards the sunset) pick up a little warm light, so he sits in the scene.
+     Set either to false to switch it off; RIM_AMT is how strong the glow is (0 to 1). */
+  var FX_ON = { outline: true, rim: true };
+  var RIM_COLOR = '#ffb070', RIM_AMT = 0.38, EDGE_COLOR = '#0b1240', EDGE_AMT = 0.5;
+  var FX = {};                                       // extra colours made on the fly, kept out of PAL so the editor palette stays clean
+  function hex(c) { return [parseInt(c.substr(1, 2), 16), parseInt(c.substr(3, 2), 16), parseInt(c.substr(5, 2), 16)]; }
+  function mix(a, b, t) {
+    var x = hex(a), y = hex(b);
+    return '#' + [0, 1, 2].map(function (i) { var v = Math.round(x[i] + (y[i] - x[i]) * t); return (v < 16 ? '0' : '') + v.toString(16); }).join('');
+  }
+  var NO_RIM = { '.': 1, i: 1, o: 1, y: 1, p: 1, t: 1, k: 1, e: 1, g: 1 };
+  function finish(g) {
+    var h = g.length, w = g[0].length;
+    var at = function (x, y) { return (x < 0 || y < 0 || x >= w || y >= h) ? '.' : g[y][x]; };
+    var out = g.map(function (r) { return r.slice(); });
+    FX.o = mix(PAL.i, EDGE_COLOR, EDGE_AMT);
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var c = g[y][x];
+      if (FX_ON.outline && c === 'i' && (at(x - 1, y) === '.' || at(x + 1, y) === '.' || at(x, y - 1) === '.' || at(x, y + 1) === '.')) { out[y][x] = 'o'; continue; }
+      if (FX_ON.rim && !NO_RIM[c] && at(x + 1, y) === 'i' && (at(x + 2, y) === '.' || at(x + 1, y - 1) === '.')) {
+        FX['r' + c] = FX['r' + c] || mix(PAL[c] || '#ff00ff', RIM_COLOR, RIM_AMT);
+        out[y][x] = 'r' + c;
+      }
+    }
+    return out;
+  }
+  function build(opt) { return finish(shrink(buildSource(opt))); }
 
   // turn a grid into a canvas (works in browsers and in @napi-rs/canvas)
   function toCanvas(g, mk) {
     var gh = g.length, gw = g[0].length, c = mk(gw, gh), ctx = c.getContext('2d');
     for (var y = 0; y < gh; y++) for (var x = 0; x < gw; x++) {
       var k = g[y][x]; if (k === '.') continue;
-      ctx.fillStyle = PAL[k] || '#f0f'; ctx.fillRect(x, y, 1, 1);
+      ctx.fillStyle = PAL[k] || FX[k] || '#f0f'; ctx.fillRect(x, y, 1, 1);
     }
     return c;
   }
