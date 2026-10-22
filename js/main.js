@@ -55,7 +55,7 @@
     'have you had some water today? go grab some.',
     'if a moth wanders past, that is allowed.',
     'everything here is a work in progress. like me.',
-    'the tea is mine. the view is yours.',
+    'the mug is mine. the view is yours.',
     'shoes off, stay a while.',
     'okay, one pat. that is the limit.'
   ];

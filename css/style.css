@@ -47,12 +47,6 @@ a:hover { color: #fff; }
   color: var(--cream); text-shadow: calc(var(--px) * .75) calc(var(--px) * .75) 0 var(--dusk), calc(var(--px) * -.5) 0 0 var(--dusk), 0 calc(var(--px) * -.5) 0 var(--dusk);
 }
 .hero-text .sub { margin: 0; font-size: clamp(.95rem, calc(var(--px) * 3.4), 1.45rem); font-weight: 600; color: #ffe9bd; text-shadow: calc(var(--px) * .5) calc(var(--px) * .5) 0 var(--dusk); }
-.to-public {
-  position: absolute; z-index: 3; top: calc(var(--px) * 4); right: calc(var(--px) * 4);
-  font: 400 clamp(.62rem, calc(var(--px) * 2.6), .85rem)/1 'Silkscreen', monospace; text-decoration: none; color: var(--cream);
-  background: rgba(37, 31, 77, .72); border: calc(var(--px) * .5) solid var(--cream); padding: .6em .8em;
-}
-.to-public:hover { background: var(--cream); color: var(--dusk); }
 
 /* ---------- layout ---------- */
 .wrap { max-width: 1040px; margin: 0 auto; padding: 8px 20px 40px; position: relative; z-index: 2; }

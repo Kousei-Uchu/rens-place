@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Aspen sprite editor</title>
+<title>Header editor</title>
 <style>
 :root{color-scheme:dark}
 body{margin:0;padding:12px;background:#14172b;color:#e8ecff;font:15px/1.4 system-ui,sans-serif}
 h1{font-size:20px;margin:0 0 4px}
+h2{font-size:16px;margin:12px 0 4px}
 .s{margin:0 0 10px;color:#a9b3e0}
 button,.btn{background:#27305a;color:inherit;border:1px solid #3d4a85;border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer}
 button.on{background:#4a62b0;border-color:#9fb2ff}
@@ -18,116 +19,278 @@ button.on{background:#4a62b0;border-color:#9fb2ff}
 #cv{display:block;touch-action:none;image-rendering:pixelated;cursor:crosshair}
 .sw{width:34px;height:34px;padding:0;border-radius:6px}
 .sw.on{outline:3px solid #fff}
-#pv{image-rendering:pixelated;background:linear-gradient(#f7b267,#e8728a);border-radius:8px;display:block}
+#pv{image-rendering:pixelated;background:linear-gradient(#f7b267,#e8728a);border-radius:8px;display:block;max-width:100%}
 #cc{width:44px;height:36px;padding:0;border:0;background:none}
 #msg{color:#9fe8b0;min-height:1.4em}
 #out{display:none;width:100%;height:120px;margin-top:8px;background:#0d1020;color:#e8ecff}
 label{display:flex;gap:6px;align-items:center}
 .side{display:flex;flex-direction:column;gap:8px}
+#hdr{display:block;width:100%;max-width:1000px;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:8px;background:#251f4d}
+#assets button .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9fe8b0;margin-left:6px}
+.grp{margin:10px 0}
+.grp b{display:block;margin-bottom:2px;color:#a9b3e0;font-weight:600}
+.cs input,.cl input{width:44px;height:34px;padding:0;border:0;background:none;cursor:pointer}
+.cl{min-width:230px}
 </style>
 </head>
 <body>
-<h1>Aspen sprite editor</h1>
-<p class="s">Paint Aspen pixel by pixel, then download <code>shark-art.js</code> and drop it into the <code>js/</code> folder.</p>
+<h1>Header editor</h1>
+<p class="s">Pick any part of the header below, paint it pixel by pixel, then download <code>header-art.js</code> and replace the one in the <code>js/</code> folder. The preview above is live.</p>
 
-<div class="bar" id="tools"></div>
-<div class="bar"><span>Frame:</span><span class="bar" id="tabs" style="margin:0"></span></div>
+<canvas id="hdr" width="400" height="150" aria-label="Live preview of the header"></canvas>
 
-<div class="row">
-  <div class="wrap" id="wrap"><canvas id="cv"></canvas></div>
-  <div class="side">
-    <canvas id="pv" width="162" height="234"></canvas>
-    <button id="an" class="on">Animation: on</button>
-    <div class="bar"><button id="undo">Undo</button><button id="redo">Redo</button></div>
-    <div class="bar"><button id="nL">&larr;</button><button id="nU">&uarr;</button><button id="nD">&darr;</button><button id="nR">&rarr;</button></div>
-    <div class="bar"><button id="cfb">Copy from Base</button><button id="clr">Clear</button></div>
-    <label>Zoom <input type="range" id="z" min="4" max="14"></label>
-    <label><input type="checkbox" id="gr" checked> Grid</label>
-    <label><input type="checkbox" id="on" checked> Ghost of Base</label>
+<div class="bar" id="assets"></div>
+
+<div id="sp">
+  <div class="bar" id="tools"></div>
+  <div class="bar multi"><span>Frame:</span><span class="bar" id="tabs" style="margin:0"></span></div>
+
+  <div class="row">
+    <div class="wrap" id="wrap"><canvas id="cv"></canvas></div>
+    <div class="side">
+      <canvas id="pv" width="162" height="234"></canvas>
+      <button id="an" class="on">Animation: on</button>
+      <div class="bar"><button id="undo">Undo</button><button id="redo">Redo</button></div>
+      <div class="bar"><button id="nL">&larr;</button><button id="nU">&uarr;</button><button id="nD">&darr;</button><button id="nR">&rarr;</button></div>
+      <div class="bar"><button id="cfb" class="multi">Copy from first frame</button><button id="clr">Clear</button></div>
+      <label>Zoom <input type="range" id="z" min="3" max="40"></label>
+      <label><input type="checkbox" id="gr" checked> Grid</label>
+      <label class="multi"><input type="checkbox" id="on" checked> Ghost of first frame</label>
+    </div>
   </div>
+
+  <div class="bar" id="pal"></div>
+  <div class="bar"><span>Colour:</span><input type="color" id="cc"><button id="add">+ New colour</button></div>
+  <div class="bar"><button id="ra">Reset this part</button></div>
 </div>
 
-<div class="bar" id="pal"></div>
-<div class="bar"><span>Colour:</span><input type="color" id="cc"><button id="add">+ New colour</button></div>
+<div id="colp" style="display:none"></div>
 
 <div class="bar">
-  <button id="dl" class="on">Download shark-art.js</button>
+  <button id="dl" class="on">Download header-art.js</button>
   <button id="cp">Copy code</button>
   <label class="btn">Import <input type="file" id="imp" accept=".js,.json,.txt" hidden></label>
   <button id="ld">Load site version</button>
-  <button id="rs">Start over (generated)</button>
+  <button id="rs">Start over (built-in art)</button>
 </div>
 <div id="msg"></div>
 <textarea id="out" readonly></textarea>
 
+<script src="js/header-art.js"></script>
 <script src="js/shark.js"></script>
-<script src="js/shark-art.js"></script>
+<script src="js/scene.js"></script>
 <script>
 (function () {
   'use strict';
-  var S = window.AspenSprite, SW = S.SW, SH = S.SH, PAL = S.PAL;
-  var ORIG = JSON.parse(JSON.stringify(PAL));
+  var S = window.AspenSprite, SC = window.AspenScene;
   var $ = function (i) { return document.getElementById(i); };
-  var NAMES = ['base', 'blink', 'swing', 'tail'];
-  var LABEL = { base: 'Base', blink: 'Blink', swing: 'Foot swing', tail: 'Tail up' };
-  var F = {}, undo = {}, redo = {}, cur = 'base', tool = 'pen', col = 'b';
-  var zoom = Math.max(4, Math.min(10, Math.floor((window.innerWidth - 24) / SW)));
-  var down = false, last = null, start = null, snap = null, anim = true, t = 0, KEY = 'aspen-sprite-draft';
-  var cv = $('cv'), cx = cv.getContext('2d'), pv = $('pv'), pc = pv.getContext('2d');
+  var CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var KEY = 'aspen-header-draft', OLD_KEY = 'aspen-sprite-draft';
+  var PAL = S.PAL, ORIG = jc(PAL);
 
-  function clone(g) { return g.map(function (r) { return r.slice(); }); }
+  // what the live site is using right now (captured before the editor swaps in its own copy)
+  var SITE_HDR = window.AspenHeaderArt ? jc(window.AspenHeaderArt) : null;
+  var SITE_SHARK = window.AspenSpriteArt ? jc(window.AspenSpriteArt) : null;
+
+  var FNAME = { base: 'Base', blink: 'Blink', swing: 'Foot swing', tail: 'Tail up', up: 'Wings up', down: 'Wings down' };
+  var LIST = [{ id: 'shark', label: 'Shark', w: S.SW, h: S.SH, frames: ['base', 'blink', 'swing', 'tail'] }].concat(
+    SC.ASSETS.map(function (a) { return { id: a.id, label: a.label, w: a.w, h: a.h, frames: a.frames }; })
+  );
+  var BYID = {};
+  LIST.forEach(function (d) { BYID[d.id] = d; });
+
+  var DF = {};            // built-in art for every asset (never changes)
+  var ST = {};            // working copy: ST[id] = { pal: {key: '#hex'}, frames: { name: grid } }
+  var COL = {};           // working scene colours
+  var cur = 'shark', frame = 'base', mode = 'sprite', tool = 'pen', pk = 'b';
+  var SW = S.SW, SH = S.SH;
+  var undo = {}, redo = {};
+  var zoom = 8, down = false, last = null, start = null, snap = null, anim = true, t = 0, sceneDirty = true, scene = null;
+  var cv = $('cv'), cx = cv.getContext('2d'), pv = $('pv'), pc = pv.getContext('2d');
+  var hdr = $('hdr'), hc = hdr.getContext('2d');
+  var T0 = performance.now();
+
+  /* ---------- small helpers ---------- */
+  function jc(o) { return JSON.parse(JSON.stringify(o)); }
+  function cloneGrid(g) { return g.map(function (r) { return r.slice(); }); }
   function rows(g) { return g.map(function (r) { return r.join(''); }); }
   function toGrid(rs) { return rs.map(function (r) { return r.split(''); }); }
   function blank() { var g = []; for (var y = 0; y < SH; y++) g.push(new Array(SW).fill('.')); return g; }
   function same(a, b) { return rows(a).join('|') === rows(b).join('|'); }
-  function art() {
-    var o = { pal: {}, base: rows(F.base) };
-    Object.keys(PAL).forEach(function (k) { o.pal[k] = PAL[k]; });
-    NAMES.slice(1).forEach(function (n) { if (!same(F[n], F.base)) o[n] = rows(F[n]); });
+  function mk(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function pal() { return ST[cur].pal; }
+  function G() { return ST[cur].frames[frame]; }
+  function setG(g) { ST[cur].frames[frame] = g; }
+  function hk() { return cur + '|' + frame; }
+  function msg(s) { $('msg').textContent = s; setTimeout(function () { $('msg').textContent = ''; }, 2500); }
+  function hex(v) { return ('0' + v.toString(16)).slice(-2); }
+
+  function freeKey(p) {
+    for (var i = 0; i < CHARS.length; i++) if (!(CHARS.charAt(i) in p)) return CHARS.charAt(i);
+    return '';
+  }
+  // read a canvas into a grid of palette letters, adding new colours to pal as they turn up
+  function canvasToGrid(c, p, rev) {
+    var w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data, g = [];
+    for (var y = 0; y < h; y++) {
+      var row = [];
+      for (var x = 0; x < w; x++) {
+        var i = (y * w + x) * 4;
+        if (d[i + 3] < 128) { row.push('.'); continue; }
+        var col = '#' + hex(d[i]) + hex(d[i + 1]) + hex(d[i + 2]);
+        if (!(col in rev)) { var k = freeKey(p); p[k] = col; rev[col] = k; }
+        row.push(rev[col]);
+      }
+      g.push(row);
+    }
+    return g;
+  }
+  function renderGrid(g, p) {
+    var c = mk(g[0].length, g.length), x = c.getContext('2d');
+    for (var y = 0; y < g.length; y++) for (var i = 0; i < g[0].length; i++) {
+      var k = g[y][i]; if (k === '.') continue;
+      x.fillStyle = p[k] || '#f0f'; x.fillRect(i, y, 1, 1);
+    }
+    return c;
+  }
+
+  /* ---------- built-in art and loading ---------- */
+  function buildDefaults() {
+    DF.shark = { pal: jc(PAL), frames: { base: S.buildProc({}), blink: S.buildProc({ blink: true }), swing: S.buildProc({ swing: 1 }), tail: S.buildProc({ tail: 2 }) } };
+    SC.ASSETS.forEach(function (a) {
+      var p = {}, rev = {}, fr = {};
+      a.frames.forEach(function (f) { fr[f] = canvasToGrid(SC.defaultCanvas(a.id, f, mk), p, rev); });
+      DF[a.id] = { pal: p, frames: fr };
+    });
+  }
+  function cloneAsset(d) {
+    var o = { pal: jc(d.pal), frames: {} };
+    Object.keys(d.frames).forEach(function (f) { o.frames[f] = cloneGrid(d.frames[f]); });
     return o;
   }
-  function resetHist() { NAMES.forEach(function (n) { undo[n] = []; redo[n] = []; }); }
-  function restorePal() { Object.keys(PAL).forEach(function (k) { delete PAL[k]; }); Object.keys(ORIG).forEach(function (k) { PAL[k] = ORIG[k]; }); }
-  function loadProc() {
-    restorePal();
-    F.base = S.buildProc({}); F.blink = S.buildProc({ blink: true });
-    F.swing = S.buildProc({ swing: 1 }); F.tail = S.buildProc({ tail: 2 });
+  // the shark's colours live in the shared S.PAL object so the sprite code and the editor always agree
+  function setSharkPal(p) {
+    Object.keys(PAL).forEach(function (k) { delete PAL[k]; });
+    Object.keys(p).forEach(function (k) { PAL[k] = p[k]; });
+    ST.shark.pal = PAL;
   }
-  function loadArt(a) {
+  function rowsOk(r, def) {
+    if (!Array.isArray(r) || r.length !== def.h) return false;
+    return r.every(function (s) { return typeof s === 'string' && s.length === def.w; });
+  }
+  function applySprite(id, d) {
+    var def = BYID[id];
+    if (!d || !d.frames) return;
+    var first = d.frames[Object.keys(d.frames)[0]];
+    if (!rowsOk(first, def)) return;
+    var p = {};
+    Object.keys(d.pal || {}).forEach(function (k) { p[k] = d.pal[k]; });
+    var fr = {};
+    def.frames.forEach(function (f) { var r = d.frames[f] || first; fr[f] = toGrid(rowsOk(r, def) ? r : first); });
+    ST[id] = { pal: p, frames: fr };
+  }
+  function applyShark(a) {
+    if (!a || !rowsOk(a.base, BYID.shark)) return;
     Object.keys(a.pal || {}).forEach(function (k) { PAL[k] = a.pal[k]; });
-    F.base = toGrid(a.base);
-    NAMES.slice(1).forEach(function (n) { F[n] = a[n] ? toGrid(a[n]) : clone(F.base); });
+    var f = ST.shark.frames;
+    f.base = toGrid(a.base);
+    ['blink', 'swing', 'tail'].forEach(function (n) { f[n] = rowsOk(a[n], BYID.shark) ? toGrid(a[n]) : cloneGrid(f.base); });
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(art())); } catch (e) {} }
-  function msg(s) { $('msg').textContent = s; setTimeout(function () { $('msg').textContent = ''; }, 2500); }
+  function colOk(k, v) {
+    var d = SC.DEFAULT_COLORS[k];
+    if (d === undefined) return false;
+    return Array.isArray(d) ? (Array.isArray(v) && v.length === d.length) : typeof v === 'string';
+  }
+  function loadAll(h, shark) {
+    h = h || {};
+    LIST.forEach(function (d) { ST[d.id] = cloneAsset(DF[d.id]); });
+    setSharkPal(DF.shark.pal);
+    COL = jc(SC.DEFAULT_COLORS);
+    Object.keys(h.colors || {}).forEach(function (k) { if (colOk(k, h.colors[k])) COL[k] = jc(h.colors[k]); });
+    Object.keys(h.sprites || {}).forEach(function (id) { if (id !== 'shark' && BYID[id]) applySprite(id, h.sprites[id]); });
+    if (shark) applyShark(shark);
+  }
+  function resetAsset(id) {
+    ST[id] = cloneAsset(DF[id]);
+    if (id === 'shark') setSharkPal(DF.shark.pal);
+  }
+
+  /* ---------- what gets saved ---------- */
+  function usedPal(st) {
+    var used = {}, o = {};
+    Object.keys(st.frames).forEach(function (f) { st.frames[f].forEach(function (r) { r.forEach(function (k) { if (k !== '.') used[k] = 1; }); }); });
+    Object.keys(used).forEach(function (k) { o[k] = st.pal[k] || '#ff00ff'; });
+    return o;
+  }
+  function sig(id, st) {
+    var fr = {};
+    Object.keys(st.frames).forEach(function (f) { fr[f] = rows(st.frames[f]); });
+    return JSON.stringify({ p: id === 'shark' ? st.pal : usedPal(st), f: fr });
+  }
+  function modified(id) { return sig(id, ST[id]) !== sig(id, DF[id]); }
+  function sharkArt() {
+    var f = ST.shark.frames, o = { pal: {}, base: rows(f.base) };
+    Object.keys(PAL).forEach(function (k) { o.pal[k] = PAL[k]; });
+    ['blink', 'swing', 'tail'].forEach(function (n) { if (!same(f[n], f.base)) o[n] = rows(f[n]); });
+    return o;
+  }
+  // only parts you changed are written, so everything else keeps using the built-in art
+  function exportObj() {
+    var h = { colors: {}, sprites: {} }, shark = null;
+    LIST.forEach(function (d) {
+      if (!modified(d.id)) return;
+      if (d.id === 'shark') { shark = sharkArt(); return; }
+      var st = ST[d.id], o = { pal: usedPal(st), frames: {} };
+      d.frames.forEach(function (f) { o.frames[f] = rows(st.frames[f]); });
+      h.sprites[d.id] = o;
+    });
+    Object.keys(COL).forEach(function (k) { if (JSON.stringify(COL[k]) !== JSON.stringify(SC.DEFAULT_COLORS[k])) h.colors[k] = jc(COL[k]); });
+    return { hdr: h, shark: shark };
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(exportObj())); } catch (e) {} }
+  function applyGlobals() {
+    var o = exportObj();
+    window.AspenHeaderArt = o.hdr;
+    window.AspenSpriteArt = o.shark || undefined;
+  }
 
   /* ---------- drawing the editor canvas ---------- */
   function paint(g) {
+    var p = pal();
     for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) {
       var k = g[y][x]; if (k === '.') continue;
-      cx.fillStyle = PAL[k] || '#f0f'; cx.fillRect(x * zoom, y * zoom, zoom, zoom);
+      cx.fillStyle = p[k] || '#f0f'; cx.fillRect(x * zoom, y * zoom, zoom, zoom);
     }
   }
   function draw() {
+    var f0 = BYID[cur].frames[0];
     cx.clearRect(0, 0, cv.width, cv.height);
-    if ($('on').checked && cur !== 'base') { cx.globalAlpha = 0.3; paint(F.base); cx.globalAlpha = 1; }
-    paint(F[cur]);
+    if ($('on').checked && frame !== f0) { cx.globalAlpha = 0.3; paint(ST[cur].frames[f0]); cx.globalAlpha = 1; }
+    paint(G());
     if ($('gr').checked && zoom >= 6) {
       cx.strokeStyle = 'rgba(0,0,0,.18)'; cx.lineWidth = 1; cx.beginPath();
       for (var x = 0; x <= SW; x++) { cx.moveTo(x * zoom + 0.5, 0); cx.lineTo(x * zoom + 0.5, SH * zoom); }
       for (var y = 0; y <= SH; y++) { cx.moveTo(0, y * zoom + 0.5); cx.lineTo(SW * zoom, y * zoom + 0.5); }
       cx.stroke();
     }
-    cx.strokeStyle = '#ff5a5a'; cx.setLineDash([5, 4]); cx.beginPath();   // deck surface (hips sit just above this line)
-    cx.moveTo(0, S.SEAT * zoom); cx.lineTo(SW * zoom, S.SEAT * zoom); cx.stroke(); cx.setLineDash([]);
+    if (cur === 'shark') {                                                   // deck surface (hips sit just above this line)
+      cx.strokeStyle = '#ff5a5a'; cx.setLineDash([5, 4]); cx.beginPath();
+      cx.moveTo(0, S.SEAT * zoom); cx.lineTo(SW * zoom, S.SEAT * zoom); cx.stroke(); cx.setLineDash([]);
+    }
   }
-  function size() { cv.width = SW * zoom; cv.height = SH * zoom; cv.style.width = cv.width + 'px'; cv.style.height = cv.height + 'px'; draw(); }
-  function mk(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function size() {
+    cv.width = SW * zoom; cv.height = SH * zoom; cv.style.width = cv.width + 'px'; cv.style.height = cv.height + 'px';
+    var ps = Math.max(1, Math.min(12, Math.floor(240 / Math.max(SW, SH))));
+    pv.width = SW * ps; pv.height = SH * ps;
+    draw();
+  }
   function preview(opt) {
-    var c = S.toCanvas(S.fromArt(art(), opt || {}), mk);
+    opt = opt || {};
+    var g = cur === 'shark' ? S.fromArt(sharkArt(), opt) : ST[cur].frames[opt.frame || frame];
+    var c = renderGrid(g, pal());
     pc.imageSmoothingEnabled = false; pc.clearRect(0, 0, pv.width, pv.height); pc.drawImage(c, 0, 0, pv.width, pv.height);
   }
-  function after() { draw(); save(); preview(); }
+  function after() { draw(); save(); preview(); bar(); sceneDirty = true; }
 
   /* ---------- tools ---------- */
   function put(g, x, y, k) { if (x >= 0 && y >= 0 && x < SW && y < SH) g[y][x] = k; }
@@ -142,102 +305,194 @@ label{display:flex;gap:6px;align-items:center}
     var tg = g[y][x]; if (tg === k) return; var st = [[x, y]];
     while (st.length) { var p = st.pop(), px = p[0], py = p[1]; if (px < 0 || py < 0 || px >= SW || py >= SH || g[py][px] !== tg) continue; g[py][px] = k; st.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]); }
   }
-  function push() { undo[cur].push(JSON.stringify(rows(F[cur]))); if (undo[cur].length > 100) undo[cur].shift(); redo[cur] = []; }
-  function doUndo() { var u = undo[cur]; if (!u.length) return; redo[cur].push(JSON.stringify(rows(F[cur]))); F[cur] = toGrid(JSON.parse(u.pop())); after(); }
-  function doRedo() { var r = redo[cur]; if (!r.length) return; undo[cur].push(JSON.stringify(rows(F[cur]))); F[cur] = toGrid(JSON.parse(r.pop())); after(); }
+  function push() {
+    var key = hk(); undo[key] = undo[key] || [];
+    undo[key].push(JSON.stringify(rows(G()))); if (undo[key].length > 100) undo[key].shift(); redo[key] = [];
+  }
+  function doUndo() {
+    var key = hk(), u = undo[key]; if (!u || !u.length) return;
+    redo[key] = redo[key] || []; redo[key].push(JSON.stringify(rows(G()))); setG(toGrid(JSON.parse(u.pop()))); after();
+  }
+  function doRedo() {
+    var key = hk(), r = redo[key]; if (!r || !r.length) return;
+    undo[key] = undo[key] || []; undo[key].push(JSON.stringify(rows(G()))); setG(toGrid(JSON.parse(r.pop()))); after();
+  }
   function nudge(dx, dy) {
-    push(); var g = F[cur], n = blank();
+    push(); var g = G(), n = blank();
     for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) { var nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < SW && ny < SH) n[ny][nx] = g[y][x]; }
-    F[cur] = n; after();
+    setG(n); after();
   }
   function pos(e) { var r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * SW), Math.floor((e.clientY - r.top) / r.height * SH)]; }
 
   cv.addEventListener('pointerdown', function (e) {
     e.preventDefault(); var p = pos(e);
     if (p[0] < 0 || p[1] < 0 || p[0] >= SW || p[1] >= SH) return;
-    var g = F[cur], k = tool === 'erase' ? '.' : col;
-    if (tool === 'pick') { var c = g[p[1]][p[0]]; if (c !== '.') { col = c; tool = 'pen'; ui(); } return; }
-    cv.setPointerCapture(e.pointerId); push(); down = true; start = last = p; snap = clone(g);
+    var g = G(), k = tool === 'erase' ? '.' : pk;
+    if (tool === 'pick') { var c = g[p[1]][p[0]]; if (c !== '.') { pk = c; tool = 'pen'; ui(); } return; }
+    cv.setPointerCapture(e.pointerId); push(); down = true; start = last = p; snap = cloneGrid(g);
     if (tool === 'fill') fill(g, p[0], p[1], k); else if (tool === 'pen' || tool === 'erase') put(g, p[0], p[1], k);
     draw();
   });
   cv.addEventListener('pointermove', function (e) {
-    if (!down) return; var p = pos(e), k = tool === 'erase' ? '.' : col;
-    if (tool === 'pen' || tool === 'erase') { line(F[cur], last[0], last[1], p[0], p[1], k); last = p; }
-    else if (tool === 'line' || tool === 'box') { F[cur] = clone(snap); (tool === 'line' ? line : box)(F[cur], start[0], start[1], p[0], p[1], k); }
+    if (!down) return; var p = pos(e), k = tool === 'erase' ? '.' : pk;
+    if (tool === 'pen' || tool === 'erase') { line(G(), last[0], last[1], p[0], p[1], k); last = p; }
+    else if (tool === 'line' || tool === 'box') { setG(cloneGrid(snap)); (tool === 'line' ? line : box)(G(), start[0], start[1], p[0], p[1], k); }
     draw();
   });
-  function up() { if (down) { down = false; save(); preview(); } }
+  function up() { if (down) { down = false; save(); preview(); bar(); sceneDirty = true; } }
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
   /* ---------- interface ---------- */
+  function bar() {
+    $('assets').innerHTML = LIST.map(function (d) {
+      return '<button data-a="' + d.id + '"' + (mode === 'sprite' && cur === d.id ? ' class="on"' : '') + '>' + d.label + (modified(d.id) ? '<span class="dot"></span>' : '') + '</button>';
+    }).join('') + '<button data-a="colors"' + (mode === 'colors' ? ' class="on"' : '') + '>Scene colours</button>';
+  }
   function ui() {
+    var d = BYID[cur], p = pal();
     $('tools').innerHTML = [['pen', 'Pen'], ['erase', 'Erase'], ['fill', 'Fill'], ['pick', 'Pick'], ['line', 'Line'], ['box', 'Box']].map(function (x) {
       return '<button data-t="' + x[0] + '"' + (tool === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>';
     }).join('');
-    $('tabs').innerHTML = NAMES.map(function (n) { return '<button data-f="' + n + '"' + (cur === n ? ' class="on"' : '') + '>' + LABEL[n] + '</button>'; }).join('');
-    $('pal').innerHTML = Object.keys(PAL).map(function (k) {
-      return '<button class="sw' + (col === k ? ' on' : '') + '" data-k="' + k + '" style="background:' + PAL[k] + '" title="' + k + '"></button>';
+    $('tabs').innerHTML = d.frames.map(function (n) { return '<button data-f="' + n + '"' + (frame === n ? ' class="on"' : '') + '>' + (FNAME[n] || n) + '</button>'; }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.multi'), function (el) { el.style.display = d.frames.length > 1 ? '' : 'none'; });
+    $('pal').innerHTML = Object.keys(p).map(function (k) {
+      return '<button class="sw' + (pk === k ? ' on' : '') + '" data-k="' + k + '" style="background:' + p[k] + '" title="' + k + '"></button>';
     }).join('');
-    if ($('cc').value !== PAL[col]) $('cc').value = PAL[col] || '#000000';
+    if ($('cc').value !== p[pk]) $('cc').value = p[pk] || '#000000';
+    bar();
   }
+  function zoomFor(w) { return Math.max(4, Math.min(w <= 20 ? 32 : w <= 50 ? 16 : 10, Math.floor((window.innerWidth - 24) / w))); }
+  function selectAsset(id) {
+    if (id === 'colors') mode = 'colors';
+    else {
+      mode = 'sprite'; cur = id; frame = BYID[id].frames[0]; SW = BYID[id].w; SH = BYID[id].h; zoom = zoomFor(SW);
+      var p = pal(); if (!(pk in p)) pk = Object.keys(p)[0];
+      $('z').value = zoom;
+    }
+    $('sp').style.display = mode === 'sprite' ? '' : 'none';
+    $('colp').style.display = mode === 'colors' ? '' : 'none';
+    ui();
+    if (mode === 'sprite') { size(); preview(); } else colRender();
+  }
+  $('assets').onclick = function (e) { var b = e.target.closest ? e.target.closest('button') : e.target, v = b && b.getAttribute('data-a'); if (v) selectAsset(v); };
   $('tools').onclick = function (e) { var v = e.target.getAttribute('data-t'); if (v) { tool = v; ui(); } };
-  $('tabs').onclick = function (e) { var v = e.target.getAttribute('data-f'); if (v) { cur = v; ui(); draw(); } };
-  $('pal').onclick = function (e) { var v = e.target.getAttribute('data-k'); if (v) { col = v; if (tool === 'erase' || tool === 'pick') tool = 'pen'; ui(); } };
-  $('cc').oninput = function () { PAL[col] = this.value; ui(); draw(); save(); preview(); };
+  $('tabs').onclick = function (e) { var v = e.target.getAttribute('data-f'); if (v) { frame = v; ui(); draw(); preview(); } };
+  $('pal').onclick = function (e) { var v = e.target.getAttribute('data-k'); if (v) { pk = v; if (tool === 'erase' || tool === 'pick') tool = 'pen'; ui(); } };
+  $('cc').oninput = function () { pal()[pk] = this.value; ui(); draw(); after(); };
   $('add').onclick = function () {
-    var cs = 'acefjklmoqrsuxzACDEIJKLMQRTUVXYZ0123456789', k = '';
-    for (var i = 0; i < cs.length; i++) if (!(cs[i] in PAL)) { k = cs[i]; break; }
+    var p = pal(), k = freeKey(p);
     if (!k) { msg('Palette is full'); return; }
-    PAL[k] = '#ff00ff'; col = k; tool = 'pen'; ui();
+    p[k] = '#ff00ff'; pk = k; tool = 'pen'; ui();
   };
   $('undo').onclick = doUndo; $('redo').onclick = doRedo;
   $('nL').onclick = function () { nudge(-1, 0); }; $('nR').onclick = function () { nudge(1, 0); };
   $('nU').onclick = function () { nudge(0, -1); }; $('nD').onclick = function () { nudge(0, 1); };
-  $('cfb').onclick = function () { if (cur === 'base') return; push(); F[cur] = clone(F.base); after(); };
-  $('clr').onclick = function () { push(); F[cur] = blank(); after(); };
+  $('cfb').onclick = function () { var f0 = BYID[cur].frames[0]; if (frame === f0) return; push(); setG(cloneGrid(ST[cur].frames[f0])); after(); };
+  $('clr').onclick = function () { push(); setG(blank()); after(); };
   $('z').oninput = function () { zoom = +this.value; size(); };
   $('gr').onchange = draw; $('on').onchange = draw;
   $('an').onclick = function () { anim = !anim; this.textContent = 'Animation: ' + (anim ? 'on' : 'off'); this.className = anim ? 'on' : ''; if (!anim) preview(); };
+  $('ra').onclick = function () {
+    if (!confirm('Put ' + BYID[cur].label + ' back to the built-in art?')) return;
+    resetAsset(cur); undo = {}; redo = {}; selectAsset(cur); save(); sceneDirty = true;
+  };
   document.addEventListener('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey)) return;
+    if (!(e.ctrlKey || e.metaKey) || mode !== 'sprite') return;
     if (e.key === 'z') { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); }
     else if (e.key === 'y') { e.preventDefault(); doRedo(); }
   });
-  function fresh() { resetHist(); ui(); size(); preview(); save(); }
-  $('ld').onclick = function () { if (window.AspenSpriteArt) loadArt(window.AspenSpriteArt); else loadProc(); fresh(); msg('Loaded what the site uses right now'); };
-  $('rs').onclick = function () { if (confirm('Throw away your edits and start from the generated sprite?')) { loadProc(); fresh(); } };
+  function fresh() { undo = {}; redo = {}; selectAsset(mode === 'colors' ? 'colors' : cur); save(); sceneDirty = true; }
+  $('ld').onclick = function () { loadAll(SITE_HDR, SITE_SHARK); fresh(); msg('Loaded what the site uses right now'); };
+  $('rs').onclick = function () { if (confirm('Throw away all your edits and start from the built-in art?')) { loadAll(null, null); fresh(); } };
+
+  /* ---------- scene colours ---------- */
+  var SINGLES = [['walnut', 'Deck wood'], ['walnutDark', 'Deck wood, dark'], ['walnutDeep', 'Deck wood, darkest'], ['copper', 'Deck top and railing'],
+    ['amber', 'Warm highlights, mug, palm trunk edge'], ['gold', 'Light highlights'], ['forest', 'Grass and palm leaves'], ['moss', 'Grass and palm leaves, light']];
+  var SANDN = ['Wet edge', 'Damp sand', 'Dry sand', 'Dry sand, light', 'Sand top', 'Specks'];
+  function chip(k, i, v, label) {
+    return '<label class="cs" title="' + label + '"><input type="color" data-k="' + k + '"' + (i === null ? '' : ' data-i="' + i + '"') + ' value="' + v + '" aria-label="' + label + '"></label>';
+  }
+  function group(title, k, names) {
+    return '<div class="grp"><b>' + title + '</b><div class="bar">' + COL[k].map(function (v, i) { return chip(k, i, v, names ? names[i] : title + ' ' + (i + 1)); }).join('') + '</div></div>';
+  }
+  function colRender() {
+    $('colp').innerHTML = '<h2>Scene colours</h2><p class="s">These colour the sky, sea, sand, deck and plants. The sprites keep their own colours. Changes show in the header above straight away.</p>' +
+      group('Sky, top to horizon', 'sky') + group('Sea, horizon to shore', 'sea') + group('Sand', 'sand', SANDN) +
+      '<div class="grp"><b>Deck and plants</b><div class="bar">' + SINGLES.map(function (s) {
+        return '<label class="cl"><input type="color" data-k="' + s[0] + '" value="' + COL[s[0]] + '"> ' + s[1] + '</label>';
+      }).join('') + '</div></div><div class="bar"><button id="rc">Reset scene colours</button></div>';
+    $('rc').onclick = function () { COL = jc(SC.DEFAULT_COLORS); colRender(); save(); bar(); sceneDirty = true; };
+  }
+  $('colp').oninput = function (e) {
+    var el = e.target, k = el.getAttribute('data-k'); if (!k) return;
+    var i = el.getAttribute('data-i');
+    if (i === null) COL[k] = el.value; else COL[k][+i] = el.value;
+    save(); bar(); sceneDirty = true;
+  };
 
   /* ---------- export / import ---------- */
-  function text() { return '/* Aspen sprite art, made with editor.html. Put this file at js/shark-art.js and reload the site. */\nwindow.AspenSpriteArt = ' + JSON.stringify(art(), null, 1) + ';\n'; }
+  function text() {
+    var o = exportObj(), s = '/* Aspen header art, made with editor.html. Save this file as js/header-art.js and reload the site. */\n';
+    if (o.shark) s += 'window.AspenSpriteArt = ' + JSON.stringify(o.shark, null, 1) + ';\n';
+    s += 'window.AspenHeaderArt = ' + JSON.stringify(o.hdr, null, 1) + ';\n';
+    return s;
+  }
   $('dl').onclick = function () {
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text()], { type: 'text/javascript' }));
-    a.download = 'shark-art.js'; document.body.appendChild(a); a.click(); a.remove(); msg('Downloaded shark-art.js');
+    a.download = 'header-art.js'; document.body.appendChild(a); a.click(); a.remove(); msg('Downloaded header-art.js');
   };
   function fallback(s) { var o = $('out'); o.style.display = 'block'; o.value = s; o.select(); msg('Select all and copy'); }
   $('cp').onclick = function () {
     var s = text();
     if (navigator.clipboard) navigator.clipboard.writeText(s).then(function () { msg('Copied!'); }, function () { fallback(s); }); else fallback(s);
   };
+  // pull the object literal that follows "window.<name> =" out of a file, honouring quotes
+  function grab(tx, name) {
+    var m = tx.indexOf('window.' + name); if (m < 0) return null;
+    var s = tx.indexOf('{', m); if (s < 0) return null;
+    var depth = 0, inStr = false, esc = false;
+    for (var i = s; i < tx.length; i++) {
+      var c = tx.charAt(i);
+      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true; else if (c === '{') depth++; else if (c === '}') { depth--; if (depth === 0) return JSON.parse(tx.slice(s, i + 1)); }
+    }
+    return null;
+  }
   $('imp').onchange = function () {
     var f = this.files[0]; if (!f) return; var r = new FileReader();
     r.onload = function () {
       try {
-        var tx = r.result, a = JSON.parse(tx.slice(tx.indexOf('{'), tx.lastIndexOf('}') + 1));
-        if (a.base && a.base.length === SH) { loadArt(a); fresh(); msg('Imported'); } else msg('That is not a sprite file');
+        var h = grab(r.result, 'AspenHeaderArt'), sh = grab(r.result, 'AspenSpriteArt');
+        if (!h && !sh) { msg('That is not a header art file'); return; }
+        loadAll(h, sh); fresh(); msg('Imported');
       } catch (e) { msg('Could not read that file'); }
     };
     r.readAsText(f);
   };
 
   /* ---------- start ---------- */
-  var d = null; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-  if (d && d.base && d.base.length === SH) loadArt(d); else if (window.AspenSpriteArt) loadArt(window.AspenSpriteArt); else loadProc();
-  $('z').value = zoom; resetHist(); ui(); size(); preview();
+  buildDefaults();
+  var d = null, old = null;
+  try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  try { old = JSON.parse(localStorage.getItem(OLD_KEY)); } catch (e) {}
+  if (d && (d.hdr || d.shark)) loadAll(d.hdr, d.shark);
+  else if (old && old.base) loadAll(SITE_HDR, old);                 // draft from the old sprite-only editor
+  else loadAll(SITE_HDR, SITE_SHARK);
+  selectAsset('shark');
+
+  // sprite preview animation
   setInterval(function () {
-    if (!anim) return; t++;
-    preview({ blink: t % 12 === 0, swing: (t >> 2) & 1, tail: [0, 1, 2, 1][t % 4] });
+    if (!anim || mode !== 'sprite') return; t++;
+    if (cur === 'shark') preview({ blink: t % 12 === 0, swing: (t >> 2) & 1, tail: [0, 1, 2, 1][t % 4] });
+    else if (BYID[cur].frames.length > 1) preview({ frame: BYID[cur].frames[t % BYID[cur].frames.length] });
   }, 350);
+
+  // live header preview: rebuilt whenever something changed, drawn at the same chunky rate as the site
+  hc.imageSmoothingEnabled = false;
+  setInterval(function () {
+    if (sceneDirty) { applyGlobals(); scene = new SC.Scene(hdr.width, mk, S); sceneDirty = false; }
+    scene.draw(hc, (performance.now() - T0) / 1000);
+  }, 83);
 })();
 </script>
 </body>
