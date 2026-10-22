@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Aspen's corner of the internet</title>
+  <meta name="description" content="The cozy, messy side of Aspen's website: projects, characters, moths and a very good sunset.">
+  <!-- This is the friends-only version. Remove the next line if you'd like search engines to find it. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#251f4d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23251f4d'/%3E%3Crect x='3' y='8' width='10' height='4' fill='%2393a3cf'/%3E%3Crect x='6' y='4' width='3' height='4' fill='%230a2c86'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23f7b92e'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the good bits</a>
+
+  <header class="hero" id="hero">
+    <canvas id="scene" role="img" aria-label="Pixel art: Aspen, a blue shark in a white hoodie, sits on a wooden deck with a mug of tea, watching the sun set over a beach."></canvas>
+    <button class="shark-hit" id="sharkHit" type="button" aria-label="Say hi to Aspen"></button>
+    <p class="bubble" id="bubble" role="status" hidden></p>
+
+    <div class="hero-text">
+      <h1>hey, I'm Aspen!</h1>
+      <p class="sub">welcome to the cozy, messy side of my website. shoes off, tea on.</p>
+    </div>
+    <a class="to-public" href="https://aspens.page">the grown-up site &rarr;</a>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+
+      <section class="board about" aria-labelledby="about-h">
+        <figure class="portrait">
+          <img src="assets/aspen.png" width="520" height="794" alt="Drawing of Aspen: a periwinkle shark with dark blue fins, an amber eye and a toothy grin, wearing a white hoodie with a shark on it and navy stripes down the sleeve.">
+          <figcaption>me, but drawn properly</figcaption>
+        </figure>
+        <div class="about-text">
+          <h2 id="about-h">who's the shark?</h2>
+          <p class="pronouns">
+            <span class="chip">they/them</span>
+            <span class="flag flag-enby" role="img" aria-label="Non-binary pride flag"></span>
+            <span class="flag flag-omni" role="img" aria-label="Omnisexual pride flag"></span>
+          </p>
+          <p>Hi hi! I'm Aspen, a shark from Australia with way too many projects going at once. I love making things on computers (websites, bots, little tools), taking photos, and generally messing around online.</p>
+          <p>It all started with Minecraft when I was about six or seven, and honestly, it's still how my brain works: &ldquo;what if I built a thing for that?&rdquo;</p>
+          <p>This is the version of my site for friends: the silly, unfinished and just-for-fun stuff. The sensible, put-together version lives at <a href="https://aspens.page">aspens.page</a>.</p>
+          <ul class="chips" aria-label="A few things about me">
+            <li>photos</li><li>code</li><li>characters</li><li>moths</li><li>sunsets</li><li>minecraft brain</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="signs" aria-labelledby="signs-h">
+        <h2 id="signs-h" class="plain-h">stuff I've made (and broken)</h2>
+        <p class="lead">Follow a sign to go wandering.</p>
+        <ul class="signpost">
+          <li class="sign r"><a href="https://characters.sorren.me" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">Character Library</span>
+            <span class="sign-desc">Every character I've made, each with their own page and bits and pieces to poke around in.</span></a></li>
+          <li class="sign l"><a href="https://moths.rens.place" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">Moth Forest</span>
+            <span class="sign-desc">A tiny forest full of moths. There's a moth builder and a screensaver too. (Yes, that's where the visitor on this page comes from.)</span></a></li>
+          <li class="sign r"><a href="https://silvershots.sorren.me" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">Silvershots</span>
+            <span class="sign-desc">My photography, in a gallery I built myself, with lightboxes and automatic watermarking.</span></a></li>
+          <li class="sign l"><a href="https://theden.sorren.me" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">The Den</span>
+            <span class="sign-desc">The website for the community I hang out in.</span></a></li>
+          <li class="sign r"><a href="https://github.com/Kousei-Uchu/BotKisser" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">BotKisser</span>
+            <span class="sign-desc">A Discord bot that does a bit of everything: games, levels, tickets, moderation. It's for private use, so the sign leads to the code.</span></a></li>
+          <li class="sign l"><a href="https://github.com/Kousei-Uchu/pride-pkg" target="_blank" rel="noopener noreferrer">
+            <span class="sign-title">Pride Package</span>
+            <span class="sign-desc">Pride flags for React, with plenty of customising. Still growing.</span></a></li>
+          <li class="sign r soon"><span class="sign-inner">
+            <span class="sign-title">Calendair</span>
+            <span class="sign-desc">A Raspberry Pi touchscreen calendar that doubles as a photo frame. Still on the workbench.</span></span></li>
+          <li class="sign l"><a href="https://aspens.page">
+            <span class="sign-title">The Grown-Up Site</span>
+            <span class="sign-desc">The tidy, put-together version of me, for anyone who needs the serious one.</span></a></li>
+        </ul>
+      </section>
+
+      <section class="board hangout" aria-labelledby="hang-h">
+        <h2 id="hang-h">come hang out</h2>
+        <p>If you'd like to say hi, send an idea, or just show me a good moth, here's where to find me.</p>
+        <ul class="buttons">
+          <li><a class="btn" href="mailto:hello@sorren.me">Email</a></li>
+          <li><a class="btn" href="https://github.com/Kousei-Uchu" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a class="btn" href="https://www.instagram.com/kouseicubed/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+          <li><a class="btn" href="https://www.youtube.com/@KouseiCubed" target="_blank" rel="noopener noreferrer">YouTube</a></li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="foot">
+    <p>made with &hearts; and one rosy maple moth &middot; <a href="https://aspens.page">the grown-up site</a></p>
+    <p class="hint">psst: you can poke the shark.</p>
+  </footer>
+
+  <script src="js/shark.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/moth-svg.js"></script>
+  <script src="js/moth.js"></script>
+</body>
+</html>
