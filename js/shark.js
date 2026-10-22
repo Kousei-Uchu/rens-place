@@ -3,8 +3,14 @@
    Palette comes from the character art (periwinkle body, dark blue fins, pale muzzle, amber eye, white hoodie). */
 (function (root) {
   'use strict';
-  var SW = 54, SH = 78;          // sprite size in pixels
-  var SEAT = 63;                 // row of the deck surface inside the sprite (hips sit on the row above)
+  var SW = 60, SH = 92;          // sprite size in pixels
+  var SEAT = 77;                 // row of the deck surface inside the sprite (hips sit on the row above)
+
+  /* Size of Aspen in the scene, as a fraction of the drawn art (1 = full size, 0.75 = three quarters).
+     The art is always re-sampled onto a smaller PIXEL GRID (see shrink() below), never stretched,
+     so every sprite pixel stays exactly one scene pixel and matches the rest of the header. */
+  var SCALE = 0.8;
+  var OUT_W = Math.round(SW * SCALE), OUT_H = Math.round(SH * SCALE), OUT_SEAT = Math.round(SEAT * SCALE);
 
   var PAL = {
     O: '#1c2a5e', i: '#4a62b0',
@@ -144,18 +150,52 @@
     if (opt.tail) diff(art.tail);
     return g;
   }
-  function build(opt) { return root.AspenSpriteArt ? fromArt(root.AspenSpriteArt, opt) : buildProc(opt); }
+  function buildSource(opt) { return root.AspenSpriteArt ? fromArt(root.AspenSpriteArt, opt) : buildProc(opt); }
+
+  /* Re-sample a full-size grid onto the smaller OUT_W x OUT_H grid. Each output pixel covers a patch of
+     source pixels (weighted by overlap) and takes whichever palette colour wins the vote. Thin outlines
+     and tiny features would normally lose that vote, so they get a boost to keep the line art and face intact. */
+  var BOOST = { O: 1.5, i: 1.5, y: 2, p: 2, t: 2, k: 2, e: 2, g: 1.5 };
+  function shrink(src) {
+    if (OUT_W === SW && OUT_H === SH) return src;
+    var kx = OUT_W / SW, ky = OUT_H / SH, out = [];
+    for (var ty = 0; ty < OUT_H; ty++) {
+      var row = [], y0 = ty / ky, y1 = (ty + 1) / ky;
+      for (var tx = 0; tx < OUT_W; tx++) {
+        var x0 = tx / kx, x1 = (tx + 1) / kx, votes = {}, solid = 0, area = 0;
+        for (var sy = Math.floor(y0); sy < Math.min(SH, Math.ceil(y1)); sy++) {
+          var wy = Math.min(sy + 1, y1) - Math.max(sy, y0);
+          for (var sx = Math.floor(x0); sx < Math.min(SW, Math.ceil(x1)); sx++) {
+            var w = wy * (Math.min(sx + 1, x1) - Math.max(sx, x0)), c = src[sy][sx];
+            area += w;
+            if (c === '.') continue;
+            solid += w;
+            votes[c] = (votes[c] || 0) + w * (BOOST[c] || 1);
+          }
+        }
+        var best = '.', bestW = 0;
+        if (solid >= area * 0.5) Object.keys(votes).forEach(function (c) { if (votes[c] > bestW) { bestW = votes[c]; best = c; } });
+        row.push(best);
+      }
+      out.push(row);
+    }
+    return out;
+  }
+  function build(opt) { return shrink(buildSource(opt)); }
 
   // turn a grid into a canvas (works in browsers and in @napi-rs/canvas)
   function toCanvas(g, mk) {
-    var c = mk(SW, SH), ctx = c.getContext('2d');
-    for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) {
+    var gh = g.length, gw = g[0].length, c = mk(gw, gh), ctx = c.getContext('2d');
+    for (var y = 0; y < gh; y++) for (var x = 0; x < gw; x++) {
       var k = g[y][x]; if (k === '.') continue;
       ctx.fillStyle = PAL[k] || '#f0f'; ctx.fillRect(x, y, 1, 1);
     }
     return c;
   }
 
-  var exp = { SW: SW, SH: SH, SEAT: SEAT, PAL: PAL, build: build, buildProc: buildProc, fromArt: fromArt, toCanvas: toCanvas };
+  // SW / SH / SEAT stay the full-size art dimensions (editor.html relies on them).
+  // outW / outH / outSeat are the size Aspen actually has in the scene after SCALE is applied.
+  var exp = { SW: SW, SH: SH, SEAT: SEAT, SCALE: SCALE, outW: OUT_W, outH: OUT_H, outSeat: OUT_SEAT,
+              PAL: PAL, build: build, buildSource: buildSource, buildProc: buildProc, fromArt: fromArt, toCanvas: toCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = exp; else root.AspenSprite = exp;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -23,8 +23,9 @@
     document.documentElement.style.setProperty('--px', S + 'px');
     scene = new Scn.Scene(W, mk, Sprite);
     var sh = scene.shark;                                  // clickable box around the shark
-    hit.style.left = ((sh.x + 6) * S) + 'px'; hit.style.top = ((sh.y + 6) * S) + 'px';
-    hit.style.width = (44 * S) + 'px'; hit.style.height = ((sh.h - 14) * S) + 'px';
+    var k = Sprite.SCALE;                                  // click box scales with the sprite
+    hit.style.left = ((sh.x + Math.round(6 * k)) * S) + 'px'; hit.style.top = ((sh.y + Math.round(6 * k)) * S) + 'px';
+    hit.style.width = (Math.round(44 * k) * S) + 'px'; hit.style.height = ((sh.h - Math.round(14 * k)) * S) + 'px';
     lastVw = vw;
     ctx.imageSmoothingEnabled = false;
     scene.draw(ctx, reduce ? STATIC_T : now());
@@ -63,9 +64,9 @@
   hit.addEventListener('click', function () {
     li = (li + 1) % lines.length;
     bubble.textContent = lines[li]; bubble.hidden = false;
-    var sh = scene.shark, left = (sh.x + 40) * S, max = canvas.clientWidth - bubble.offsetWidth - 8;
+    var sh = scene.shark, left = (sh.x + Math.round(40 * Sprite.SCALE)) * S, max = canvas.clientWidth - bubble.offsetWidth - 8;
     bubble.style.left = Math.max(8, Math.min(left, max)) + 'px';
-    bubble.style.top = Math.max(8, (sh.y + 8) * S - bubble.offsetHeight - 6) + 'px';
+    bubble.style.top = Math.max(8, (sh.y + Math.round(8 * Sprite.SCALE)) * S - bubble.offsetHeight - 6) + 'px';
     scene.wag(now());
     if (reduce) scene.draw(ctx, STATIC_T);
     clearTimeout(bt); bt = setTimeout(function () { bubble.hidden = true; }, 4200);
