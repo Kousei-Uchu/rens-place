@@ -18,7 +18,7 @@ The cozy, friends-only version of Aspen's site. Plain HTML, CSS and JavaScript: 
 | `js/main.js` | Runs the header, handles poking the shark (edit the `lines` list), adds fireflies. |
 | `js/moth.js` | The rosy maple moth. Same movement as moth-forest's screensaver, but in page coordinates. |
 | `js/moth-svg.js` | The moth drawing, generated from moth-forest's moth builder. |
-| `assets/aspen.png` | The portrait, resized from the main site. |
+| `assets/aspen.png` | The portrait. |
 
 ## Notes
 
