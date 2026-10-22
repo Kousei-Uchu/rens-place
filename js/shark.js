@@ -14,7 +14,7 @@
     W: '#f6f6f8', h: '#d3d9ea', H: '#b2bddb',
     S: '#14325f',
     y: '#f7b92e', p: '#1b1830', t: '#ffffff',
-    g: '#5e6b7c', n: '#24345f', N: '#18244a'
+    g: '#5e6b7c', n: '#24345f', N: '#18244a', k: '#f4a9bd'
   };
 
   function grid() {
@@ -55,7 +55,7 @@
   }
 
   // opt.tail: 0..2 (tail tip lift), opt.blink, opt.swing: 0/1 (calf sway)
-  function build(opt) {
+  function buildProc(opt) {
     opt = opt || {};
     var tail = opt.tail || 0, blink = !!opt.blink, swing = opt.swing || 0;
     var g = grid(), P = api(g);
@@ -67,44 +67,49 @@
     P.poly([[1, D - 8 + ty], [1, D - 17 + ty * 2], [5, D - 12 + ty], [9, D - 19 + ty * 2], [7, D - 8 + ty]], 'F', 'O');   // tail fin lobes (dark)
     P.poly([[2, D - 10 + ty], [4, D - 14 + ty], [6, D - 10 + ty]], 'G');
 
-    /* ---- hood bunched behind the neck + torso (oversized hoodie, wide shoulders, slight slouch) ---- */
-    P.poly([[13, D - 29], [23, D - 32], [34, D - 31], [39, D - 24], [40, D - 9], [36, D - 1], [14, D - 1], [10, D - 11], [10, D - 23]], 'W', 'i');   // body
-    P.ell(16, D - 27, 7, 5, 'W', 'i');                                                                                                              // hood
-    P.poly([[19, D - 16], [33, D - 14], [34, D - 7], [19, D - 6]], 'h', 'i');                                                                        // kangaroo pocket
-    // little shark logo on the belly
-    P.poly([[21, D - 22], [26, D - 24], [30, D - 22], [28, D - 20], [23, D - 20]], 'g');
-    P.set(26, D - 25, 'g'); P.set(29, D - 21, 'g');
+    /* ---- torso: oversized hoodie, hood bunched behind the neck ---- */
+    P.poly([[13, D - 27], [18, D - 32], [30, D - 32], [37, D - 27], [38, D - 14], [36, D - 8], [14, D - 8], [11, D - 15], [11, D - 22]], 'W', 'i');   // body
+    P.ell(17, D - 28, 7, 5, 'W', 'i');                                                                                                                  // hood
+    P.rect(13, D - 9, 24, 1, 'h');                                                                                                                      // hem
+    P.poly([[29, D - 18], [32, D - 20], [36, D - 18], [34, D - 16], [30, D - 16]], 'g');                                                                // shark logo
+    P.set(32, D - 21, 'g'); P.set(35, D - 17, 'g');
 
-    /* ---- legs: chunky shorts, thigh along the deck, sturdy calf and foot dangling over the edge ---- */
-    P.poly([[18, D - 9], [41, D - 9], [44, D - 1], [18, D - 1]], 'n', 'O');
-    var sw = swing;                                                                                                                                 // calf sway (0 or 1 px)
-    P.poly([[38 + sw, D - 1], [45 + sw, D - 1], [46 + sw, D + 10], [38 + sw, D + 10]], 'b', 'i');
-    P.poly([[37 + sw, D + 10], [49 + sw, D + 10], [50 + sw, D + 13], [37 + sw, D + 13]], 'd', 'O');                                                 // foot
-    P.rect(48 + sw, D + 11, 1, 2, 'B');
+    /* ---- legs: shorts across the lap, calf + foot dangling over the deck edge ---- */
+    P.poly([[15, D - 9], [43, D - 9], [45, D - 1], [15, D - 1]], 'n', 'O');
+    var sw = swing;
+    P.poly([[39 + sw, D - 1], [45 + sw, D - 1], [46 + sw, D + 10], [39 + sw, D + 10]], 'b', 'i');
+    P.poly([[38 + sw, D + 10], [50 + sw, D + 10], [51 + sw, D + 13], [38 + sw, D + 13]], 'd', 'O');                                                   // foot
+    P.rect(49 + sw, D + 11, 1, 2, 'B');
 
-    /* ---- neck + head: big, wide head, short thick neck, blunt snout, heavy jaw ---- */
-    P.poly([[25, D - 34], [37, D - 34], [38, D - 28], [25, D - 28]], 'b', 'i');                                                                     // neck
-    P.ell(29.5, D - 41, 10.5, 9.5, 'b', 'i');                                                                                                       // skull
-    P.poly([[35, D - 48], [45, D - 47], [50, D - 43], [52, D - 37], [49, D - 31], [34, D - 31]], 'b', 'i');                                         // snout
-    P.poly([[32, D - 38], [49, D - 38], [51, D - 35], [49, D - 31], [34, D - 30], [29, D - 34]], 'w', 'i');                                         // pale jaw / cheek
-    P.rect(50, D - 44, 2, 4, 'F');                                                                                                                  // nose
-    // hair swoop across the forehead + strand behind the ear
-    P.poly([[19, D - 42], [21, D - 51], [30, D - 54], [39, D - 51], [41, D - 46], [31, D - 47], [24, D - 43]], 'B', 'i');
-    P.poly([[19, D - 38], [15, D - 29], [21, D - 31]], 'b', 'i');
-    // fin spikes (dark blue) swept back and lower, shorter
-    P.poly([[24, D - 47], [10, D - 58], [12, D - 51], [18, D - 41]], 'F', 'O');      // big back fin-ear
-    P.poly([[29, D - 51], [28, D - 58], [35, D - 51]], 'F', 'O');                    // small top spike
-    P.poly([[12, D - 56], [14, D - 52], [18, D - 45], [16, D - 51]], 'G');           // fin highlight
+    /* ---- neck: thick, grey-blue at the back, pale throat flowing into the chest ---- */
+    P.poly([[24, D - 36], [36, D - 36], [38, D - 27], [23, D - 27]], 'b', 'i');
+    P.poly([[30, D - 33], [38, D - 31], [36, D - 25], [32, D - 22]], 'w');                                                                             // pale chest V
+    P.set(31, D - 24, 'h'); P.set(31, D - 23, 'h'); P.set(31, D - 22, 'h'); P.set(34, D - 24, 'h'); P.set(34, D - 23, 'h'); P.set(34, D - 22, 'h');     // drawstrings
+
+    /* ---- head: one long flat-topped box (skull flows straight into a blunt, square-ended snout) ---- */
+    P.poly([[19, D - 40], [20, D - 47], [26, D - 51], [35, D - 50], [41, D - 47], [51, D - 46], [52, D - 44], [52, D - 34], [49, D - 32], [38, D - 31], [30, D - 29], [22, D - 31]], 'b', 'i');
+    // pale muzzle: under the eye, along the whole jaw, sweeping down into the throat
+    P.poly([[36, D - 42], [52, D - 42], [52, D - 34], [49, D - 32], [38, D - 31], [30, D - 29], [27, D - 31], [31, D - 38]], 'w', 'v');
+    // hair: spiky swept-back tufts + a lock hanging by the eye
+    P.poly([[21, D - 39], [15, D - 41], [18, D - 44], [13, D - 47], [19, D - 48], [18, D - 52], [25, D - 51], [29, D - 54], [33, D - 51], [40, D - 49], [41, D - 47], [35, D - 46], [34, D - 42], [30, D - 44], [26, D - 41]], 'b', 'i');
+    // fin-ears sweep back and up, on top of the hair
+    P.poly([[34, D - 49], [19, D - 61], [21, D - 54], [27, D - 45]], 'F', 'O');      // big back fin-ear
+    P.poly([[36, D - 50], [39, D - 58], [42, D - 48]], 'F', 'O');                    // small top spike
+    P.poly([[21, D - 58], [22, D - 55], [26, D - 49], [25, D - 55]], 'G');           // fin highlight
+
     /* ---- face ---- */
-    if (blink) { P.rect(38, D - 41, 4, 1, 'p'); }
-    else { P.rect(38, D - 41, 3, 2, 'y'); P.set(40, D - 41, 'p'); P.set(40, D - 40, 'p'); P.rect(38, D - 42, 5, 1, 'p'); }                          // eye + heavy brow
-    P.rect(40, D - 35, 8, 2, 'p'); P.set(48, D - 36, 'p');                                                                                          // grin
-    P.set(41, D - 35, 't'); P.set(43, D - 35, 't'); P.set(45, D - 35, 't'); P.set(47, D - 35, 't');                                                 // teeth
+    if (blink) { P.rect(37, D - 45, 4, 1, 'p'); }
+    else { P.rect(37, D - 45, 3, 2, 'y'); P.set(39, D - 45, 'p'); P.set(39, D - 44, 'p'); P.rect(36, D - 46, 5, 1, 'p'); P.set(41, D - 45, 'p'); }    // eye + heavy lid
+    P.rect(37, D - 42, 3, 1, 'k');                                                                                                                      // blush
+    P.rect(35, D - 37, 13, 1, 'i'); P.set(48, D - 38, 'i'); P.set(49, D - 39, 'i');                                                                     // closed smirk
+    P.set(40, D - 36, 't'); P.set(44, D - 36, 't');                                                                                                     // two little teeth
+    P.set(50, D - 45, 'i');                                                                                                                             // nostril
 
-    /* ---- arm resting on the knee (sleeve with navy stripes) ---- */
-    P.poly([[26, D - 29], [35, D - 28], [40, D - 16], [39, D - 9], [31, D - 9], [26, D - 17]], 'W', 'i');
-    [[28, D - 25], [31, D - 21], [32, D - 17], [33, D - 13]].forEach(function (s) { P.rect(s[0], s[1], 5, 2, 'S'); });
-    P.rect(36, D - 9, 7, 4, 'b'); P.rect(43, D - 9, 1, 3, 'B');                                                                                      // hand on the knee
+    /* ---- near arm: shoulder -> elbow -> forearm resting on the knee, navy-striped sleeve ---- */
+    P.poly([[19, D - 29], [27, D - 29], [28, D - 18], [26, D - 11], [18, D - 11], [17, D - 20]], 'W', 'i');                                              // upper arm
+    P.poly([[20, D - 14], [34, D - 14], [45, D - 13], [46, D - 8], [34, D - 7], [20, D - 8]], 'W', 'i');                                                  // forearm
+    [[32, D - 12], [36, D - 12], [40, D - 12]].forEach(function (s) { P.rect(s[0], s[1], 2, 4, 'S'); });                                                  // sleeve stripes
+    P.rect(46, D - 12, 4, 4, 'b'); P.rect(50, D - 11, 1, 3, 'B');                                                                                          // hand over the knee
 
     /* ---- automatic selective shading + outer outline ---- */
     function shade(from, light, dark) {
@@ -127,6 +132,20 @@
     return o;
   }
 
+  // If js/shark-art.js (made with editor.html) exists, draw from it; otherwise use the generated sprite above.
+  // Frames: base + optional blink / swing / tail. Each extra frame only replaces the pixels that differ from base.
+  function fromArt(art, opt) {
+    opt = opt || {};
+    Object.keys(art.pal || {}).forEach(function (k) { PAL[k] = art.pal[k]; });
+    var base = art.base, g = base.map(function (r) { return r.split(''); });
+    function diff(f) { if (!f) return; for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) if (f[y][x] !== base[y][x]) g[y][x] = f[y][x]; }
+    if (opt.blink) diff(art.blink);
+    if (opt.swing) diff(art.swing);
+    if (opt.tail) diff(art.tail);
+    return g;
+  }
+  function build(opt) { return root.AspenSpriteArt ? fromArt(root.AspenSpriteArt, opt) : buildProc(opt); }
+
   // turn a grid into a canvas (works in browsers and in @napi-rs/canvas)
   function toCanvas(g, mk) {
     var c = mk(SW, SH), ctx = c.getContext('2d');
@@ -137,6 +156,6 @@
     return c;
   }
 
-  var exp = { SW: SW, SH: SH, SEAT: SEAT, PAL: PAL, build: build, toCanvas: toCanvas };
+  var exp = { SW: SW, SH: SH, SEAT: SEAT, PAL: PAL, build: build, buildProc: buildProc, fromArt: fromArt, toCanvas: toCanvas };
   if (typeof module !== 'undefined' && module.exports) module.exports = exp; else root.AspenSprite = exp;
 })(typeof window !== 'undefined' ? window : globalThis);
