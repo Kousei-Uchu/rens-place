@@ -32,7 +32,9 @@ a:hover { color: #fff; }
 
 /* ---------- header scene ---------- */
 .hero { position: relative; overflow: hidden; line-height: 0; background: linear-gradient(var(--dusk), #cd6588 55%, #ffe0a0 80%, var(--amber)); min-height: 240px; }
-#scene { display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
+#scene { display: block; width: 100%; height: auto; image-rendering: crisp-edges; image-rendering: pixelated; }
+.hero-text { display: none; }
+.shark-hit { left: 31.4%; top: 25%; width: 14.3%; height: 62.5%; }
 .shark-hit { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; z-index: 2; }
 .bubble {
   position: absolute; z-index: 4; margin: 0; max-width: 260px; padding: 10px 14px;

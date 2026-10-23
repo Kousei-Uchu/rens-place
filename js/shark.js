@@ -7,9 +7,8 @@
   var SEAT = 77;                 // row of the deck surface inside the sprite (hips sit on the row above)
 
   /* Size of Aspen in the scene, as a fraction of the drawn art (1 = full size, 0.75 = three quarters).
-     The art is always re-sampled onto a smaller PIXEL GRID (see shrink() below), never stretched,
-     so every sprite pixel stays exactly one scene pixel and matches the rest of the header. */
-  var SCALE = 0.8;
+     Render at the artwork's native pixel grid. Fractional downsampling merged adjacent colours and erased facial/outline pixels. */
+  var SCALE = 0.96;
   var OUT_W = Math.round(SW * SCALE), OUT_H = Math.round(SH * SCALE), OUT_SEAT = Math.round(SEAT * SCALE);
 
   var PAL = {
@@ -150,7 +149,51 @@
     if (opt.tail) diff(art.tail);
     return g;
   }
-  function buildSource(opt) { return root.AspenSpriteArt ? fromArt(root.AspenSpriteArt, opt) : buildProc(opt); }
+  function cleanArt(g) {
+    // The traced source has a few single-pixel outline-colour flecks in the forehead.
+    // Keep the real silhouette, eye and hair edges; only soften isolated marks inside the head.
+    var out = g.map(function (row) { return row.slice(); });
+    for (var y = 10; y <= 15 && y < out.length; y++) {
+      for (var x = 26; x <= 38 && x < out[y].length; x++) {
+        if (g[y][x] !== 'i') continue;
+        var neighbours = 0;
+        if (g[y - 1] && g[y - 1][x] === 'i') neighbours++;
+        if (g[y + 1] && g[y + 1][x] === 'i') neighbours++;
+        if (g[y][x - 1] === 'i') neighbours++;
+        if (g[y][x + 1] === 'i') neighbours++;
+        if (neighbours <= 1) out[y][x] = 'b';
+      }
+    }
+    return out;
+  }
+  // Correct the traced pose's silhouette before scene rendering. The original trace
+  // has a narrow, tall hoodie and very thin lap/legs; widen those rows around the
+  // body's centre while keeping the face and tail at their authored proportions.
+  function reshapeProportions(src) {
+    var out = [];
+    for (var y = 0; y < src.length; y++) {
+      var row = new Array(SW).fill('.');
+      var factor = y >= 32 && y <= 64 ? 1.30 : (y >= 65 && y <= 76 ? 1.14 : 1);
+      var center = y >= 32 ? 32 : 31;
+      for (var x = 0; x < SW; x++) {
+        var c = src[y][x];
+        if (c === '.') continue;
+        var nx = Math.round(center + (x - center) * factor);
+        if (nx >= 0 && nx < SW) row[nx] = c;
+        // Fill gaps introduced by widening so the silhouette stays solid and crisp.
+        if (factor > 1 && nx !== center + (x - center) * factor) {
+          var lo = Math.min(x, nx), hi = Math.max(x, nx);
+          for (var fx = lo; fx <= hi; fx++) if (fx >= 0 && fx < SW && row[fx] === '.') row[fx] = c;
+        }
+      }
+      out.push(row);
+    }
+    return out;
+  }
+  function buildSource(opt) {
+    var source = root.AspenSpriteArt ? cleanArt(fromArt(root.AspenSpriteArt, opt)) : buildProc(opt);
+    return reshapeProportions(source);
+  }
 
   /* Re-sample a full-size grid onto the smaller OUT_W x OUT_H grid. Each output pixel covers a patch of
      source pixels (weighted by overlap) and takes whichever palette colour wins the vote. Thin outlines
