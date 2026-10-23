@@ -137,13 +137,34 @@
     return o;
   }
 
-  // If js/shark-art.js (made with editor.html) exists, draw from it; otherwise use the generated sprite above.
+  // If js/shark-art.js exists, draw from it; otherwise use the generated sprite above.
   // Frames: base + optional blink / swing / tail. Each extra frame only replaces the pixels that differ from base.
+  //
+  // Two storage formats are read, so older files keep working:
+  //   original: pal is {"i": "#2842be", ...} and every row is a string, one character per pixel ('.' = empty).
+  //   indexed:  pal is a list of [name, "#rrggbb"] pairs with no size limit, and every row is a list of numbers:
+  //             0 = empty, n = the n-th pair in pal. Names can be any text; the single letters the finishing pass
+  //             knows about (i, o, y, p, t, k, e, g ...) keep their meaning, new colours can be called anything else.
   function fromArt(art, opt) {
     opt = opt || {};
-    Object.keys(art.pal || {}).forEach(function (k) { PAL[k] = art.pal[k]; });
-    var base = art.base, g = base.map(function (r) { return r.split(''); });
-    function diff(f) { if (!f) return; for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) if (f[y][x] !== base[y][x]) g[y][x] = f[y][x]; }
+    var names = null;                                   // number -> name, only for the indexed format
+    if (Array.isArray(art.pal)) {
+      names = [null];
+      art.pal.forEach(function (e) { names.push(String(e[0])); PAL[String(e[0])] = e[1]; });
+    } else {
+      Object.keys(art.pal || {}).forEach(function (k) { PAL[k] = art.pal[k]; });
+    }
+    function cells(rows) {
+      return rows.map(function (r) {
+        if (typeof r === 'string') return r.split('');
+        return Array.prototype.map.call(r, function (v) { return v > 0 && names[v] ? names[v] : '.'; });
+      });
+    }
+    var base = cells(art.base), g = base.map(function (r) { return r.slice(); });
+    function diff(f) {
+      if (!f) return; f = cells(f);
+      for (var y = 0; y < SH; y++) for (var x = 0; x < SW; x++) if (f[y][x] !== base[y][x]) g[y][x] = f[y][x];
+    }
     if (opt.blink) diff(art.blink);
     if (opt.swing) diff(art.swing);
     if (opt.tail) diff(art.tail);
@@ -246,8 +267,8 @@
       var c = g[y][x];
       if (FX_ON.outline && c === 'i' && (at(x - 1, y) === '.' || at(x + 1, y) === '.' || at(x, y - 1) === '.' || at(x, y + 1) === '.')) { out[y][x] = 'o'; continue; }
       if (FX_ON.rim && !NO_RIM[c] && at(x + 1, y) === 'i' && (at(x + 2, y) === '.' || at(x + 1, y - 1) === '.')) {
-        FX['r' + c] = FX['r' + c] || mix(PAL[c] || '#ff00ff', RIM_COLOR, RIM_AMT);
-        out[y][x] = 'r' + c;
+        FX['~r' + c] = FX['~r' + c] || mix(PAL[c] || '#ff00ff', RIM_COLOR, RIM_AMT);
+        out[y][x] = '~r' + c;
       }
     }
     return out;

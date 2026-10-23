@@ -41,7 +41,7 @@
   function lg(l, f) { return l.frames[l.anim ? Math.min(f, l.frames.length - 1) : 0]; }
   function posed(model, l, f) {
     var g = lg(l, f); if (l.bind < 0 || !model.skel.j[l.bind]) return g;
-    var m = inv(M(model, l.bind, f)), o = new Uint8Array(g.length), w = model.w, h = model.h;
+    var m = inv(M(model, l.bind, f)), o = new Uint16Array(g.length), w = model.w, h = model.h;
     for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
       var sx = Math.floor(m[0] * (x + .5) + m[2] * (y + .5) + m[4]), sy = Math.floor(m[1] * (x + .5) + m[3] * (y + .5) + m[5]);
       if (sx >= 0 && sy >= 0 && sx < w && sy < h) o[y * w + x] = g[sy * w + sx];
@@ -89,22 +89,36 @@
     if (!o || typeof o !== 'object' || !o.layers || !o.layers.length) throw new Error('no layers found in that design');
     var w = Math.floor(+o.w), h = Math.floor(+o.h);
     if (!(w >= 8 && h >= 8 && w <= 1024 && h <= 1024)) throw new Error('w and h must be numbers from 8 to 1024');
-    var pal = [], map = {}, N = Math.max(1, Math.floor(+o.frames) || 1);
-    Object.keys(o.palette || {}).forEach(function (k) {
-      if (k === '.' || k.length !== 1) return; if (pal.length >= 62) throw new Error('palette has more than 62 colours');
-      if (!/^#[0-9a-fA-F]{6}$/.test(o.palette[k])) throw new Error('colour "' + k + '" is not a #rrggbb value');
-      pal.push(o.palette[k].toLowerCase()); map[k] = pal.length;
-    });
+    var pal = [], map = {}, N = Math.max(1, Math.floor(+o.frames) || 1), HEX = /^#[0-9a-fA-F]{6}$/;
+    if (Array.isArray(o.palette)) {
+      // indexed palette (rens-header/3): a list of #rrggbb colours, no size limit. Pixels refer to them by number: 0 is transparent, n is palette[n - 1].
+      o.palette.forEach(function (h, i) {
+        if (!HEX.test(h)) throw new Error('palette entry ' + i + ' is not a #rrggbb value');
+        pal.push(h.toLowerCase());
+      });
+    } else {
+      // older designs: {"a":"#rrggbb", ...} with single-character keys (rows are strings of those keys)
+      Object.keys(o.palette || {}).forEach(function (k) {
+        if (k === '.' || k.length !== 1) return;
+        if (!HEX.test(o.palette[k])) throw new Error('colour "' + k + '" is not a #rrggbb value');
+        pal.push(o.palette[k].toLowerCase()); map[k] = pal.length;
+      });
+    }
     if (!pal.length) pal = ['#ffffff'];
     var layers = o.layers.map(function (l, li) {
       var code = l.type === 'code' || typeof l.code === 'string', gs;
-      if (code) gs = [new Uint8Array(w * h)];
+      if (code) gs = [new Uint16Array(w * h)];
       else {
-        var fs = l.frames; if (!fs || !fs.length) throw new Error('layer ' + (li + 1) + ' has no frames'); if (typeof fs[0] === 'string') fs = [fs];
+        var fs = l.frames; if (!fs || !fs.length) throw new Error('layer ' + (li + 1) + ' has no frames');
+        if (typeof fs[0] === 'string' || (Array.isArray(fs[0]) && typeof fs[0][0] === 'number')) fs = [fs];   // a single frame given without the outer list
         N = Math.max(N, fs.length);
         gs = fs.map(function (rows) {
-          var g = new Uint8Array(w * h);
-          for (var y = 0; y < h; y++) { var r = rows[y] || ''; for (var x = 0; x < w; x++) { var c = r[x]; if (c && map[c]) g[y * w + x] = map[c]; } }
+          var g = new Uint16Array(w * h);
+          for (var y = 0; y < h; y++) {
+            var r = rows[y] || '';
+            if (typeof r === 'string') { for (var x = 0; x < w; x++) { var c = r[x]; if (c && map[c]) g[y * w + x] = map[c]; } }
+            else for (var x2 = 0; x2 < w; x2++) { var v = r[x2] | 0; if (v > 0 && v <= pal.length) g[y * w + x2] = v; }
+          }
           return g;
         });
       }

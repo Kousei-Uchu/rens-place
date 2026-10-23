@@ -1,8 +1,12 @@
-/* A rosy maple moth that drops by every now and again.
+/* A rosy maple moth that drops by every now and again, drawn in pixels.
    Movement is ported from moth-forest's moth_screensaver.html (same rest / walk / fly modes, turn rates,
-   speeds, wobble and the "lift towards you" scale pop). The difference is the coordinate space:
-   the moth lives in PAGE coordinates (it is absolutely positioned inside the document), so when you scroll,
+   speeds, wobble and the "lift towards you" scale pop). The moth lives in PAGE coordinates, so when you scroll
    it stays where it is on the page instead of following the screen.
+
+   Pixel look: the moth SVG is baked into a few wing-flap frames, then each frame is drawn into a tiny canvas
+   whose pixels are exactly as big as the header's pixels (the --px zoom set by js/main.js). Every pixel is
+   fully on or off (no soft edges), the heading snaps in ROT_STEP turns, and the position snaps to the header's
+   pixel grid, so the moth looks like it was drawn on the same canvas.
    Tip: add ?moth=now to the address to make it show up straight away. */
 (function () {
   'use strict';
@@ -15,30 +19,84 @@
   var rnd = function (a, b) { return b == null ? Math.random() * (a || 1) : a + Math.random() * (b - a); };
   var ang = function (a, b) { return Math.atan2(Math.sin(b - a), Math.cos(b - a)); };
 
+  /* ---------- pixel look settings ---------- */
+  var FLAP_N = 6;                  // flap frames per wing beat
+  var FLAP_CYCLE = 0.36;           // seconds per wing beat (slower than the old smooth flap so it reads in pixels)
+  var FLAP_AMP = 0.6;
+  var ROT_STEP = Math.PI / 12;     // heading snaps to 15 degree turns
+  var ALPHA_CUT = 110;             // pixel is drawn if it is at least this opaque (0-255)
+  var VB = { x: -126, y: -72.4, w: 252, h: 169.9 };   // viewBox padded so flapping wings are never clipped
+  var VB_CX = VB.x + VB.w / 2, VB_CY = VB.y + VB.h / 2;   // centre of the drawing (the old CSS rotated around it)
+
+  /* ---------- bake the flap frames from the SVG ---------- */
+  var frames = [];                                              // 0..FLAP_N-1 = flap, FLAP_N = wings at rest
+  (function bake() {
+    var base = window.ROSY_MOTH_SVG
+      .replace(/(class="moth [^"]*?) fly"/, '$1"')              // switch off the CSS animations
+      .replace(/viewBox="[^"]*"/, 'viewBox="' + [VB.x, VB.y, VB.w, VB.h].join(' ') + '"')
+      .replace('<svg ', '<svg width="' + VB.w * 2 + '" height="' + VB.h * 2 + '" ');
+    for (var k = 0; k <= FLAP_N; k++) {
+      var svg = base.replace(/class="wing wing-(hind|fore) ([rl])"/g, function (m, kind) {
+        var ph = k / FLAP_N - (kind === 'hind' ? 0.12 : 0);     // hind wings lag a little, like the original
+        var f = k === FLAP_N ? 0 : (1 - Math.cos(ph * 6.28319)) / 2;
+        return m + ' style="transform:rotate(' + (-FLAP_AMP * 10 * f).toFixed(2) + 'deg) scale(' + (1 - FLAP_AMP * f).toFixed(3) + ',1)"';
+      });
+      var img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      frames.push(img);
+    }
+  })();
+
+  /* ---------- the canvas ---------- */
   var layer = document.createElement('div');
   layer.id = 'moth-layer'; layer.setAttribute('aria-hidden', 'true');
-  var el = document.createElement('div');
-  el.className = 'page-moth'; el.innerHTML = window.ROSY_MOTH_SVG;
+  var el = document.createElement('canvas');
+  el.className = 'page-moth';
   layer.appendChild(el); document.body.appendChild(layer);
-  var svg = el.firstElementChild;
-  svg.style.setProperty('--flap-speed', '.1s');                 // same flap as the screensaver
-  svg.style.setProperty('--flap-amp', '.6');
+  var ctx = el.getContext('2d', { willReadFrequently: true });
 
-  var size = innerWidth < 640 ? 72 : 100, sc = size / 100;
-  el.style.width = size + 'px';
-  var hh = el.offsetHeight || size * 0.64;
+  var S = 4, size = 100, sc = 1, C = 48, dw = 25, dh = 17;
+  function setup() {
+    var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px'));
+    S = v > 0 ? v : 4;                                          // header pixel size, in screen pixels
+    size = innerWidth < 640 ? 72 : 100; sc = size / 100;
+    C = Math.ceil(1.9 * size / S / 2) * 2;                      // canvas side, in moth pixels (room to rotate + pop)
+    el.width = C; el.height = C;
+    el.style.width = (C * S) + 'px'; el.style.height = (C * S) + 'px';
+    dw = (size / S) * (VB.w / 228); dh = dw * VB.h / VB.w;      // drawing size in moth pixels
+    lastKey = ''; r.tf = '';
+  }
 
   var r = { x: -300, y: 0, h: 0, st: 'rest', t: 0, z: 0, ph: rnd(6.28), tx: 0, ty: 0, flying: true, tf: '' };
   var mode = 'away';                                            // away -> visit -> leave -> away ...
   var timer = /[?&]moth=now/.test(location.search) ? 0.3 : rnd(4, 8);
-  var visit = 0, T = 0, last = 0;
+  var visit = 0, T = 0, last = 0, lastKey = '';
+  setup();
 
-  function setMode(st) {
-    r.st = st;
-    var f = st === 'fly';
-    if (f !== r.flying) { svg.classList.toggle('fly', f); r.flying = f; }
-  }
+  var rt;
+  addEventListener('resize', function () {                      // wait until main.js has re-laid-out the header
+    clearTimeout(rt); rt = setTimeout(setup, 250);
+  });
+
+  function setMode(st) { r.st = st; r.flying = st === 'fly'; }
   setMode('rest'); el.style.visibility = 'hidden';
+
+  /* draw one pixel frame: rotate + scale the baked SVG into the small canvas, then snap every pixel on/off */
+  function draw(rot, s, fi) {
+    var img = frames[fi];
+    if (!img || !img.complete || !img.naturalWidth) return false;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, C, C);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.translate(C / 2, C / 2); ctx.rotate(rot); ctx.scale(s, s);
+    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    try {
+      var id = ctx.getImageData(0, 0, C, C), d = id.data;
+      for (var i = 3; i < d.length; i += 4) d[i] = d[i] >= ALPHA_CUT ? 255 : 0;
+      ctx.putImageData(id, 0, 0);
+    } catch (e) { /* if the browser blocks reading pixels the moth is simply a little soft */ }
+    return true;
+  }
 
   var pageW = function () { return layer.clientWidth || document.documentElement.clientWidth; };
   var pageH = function () { return layer.clientHeight || document.documentElement.scrollHeight; };
@@ -97,8 +155,16 @@
     } else if (r.t <= 0 && mode === 'visit') choose();
 
     r.z = lerp(r.z, r.st === 'fly' ? 1 : 0, 1 - Math.exp(-dt * 3)); if (r.z < 0.002) r.z = 0;
-    var s = 1 + 0.4 * r.z, wob = r.st === 'walk' ? Math.sin(T * 10 + r.ph) * 5 : 0;
-    var tf = 'translate(' + (r.x - size / 2).toFixed(1) + 'px,' + (r.y - hh / 2).toFixed(1) + 'px) rotate(' + (r.h * 57.3 + 90 + wob).toFixed(1) + 'deg) scale(' + s.toFixed(3) + ')';
+    var s = Math.round((1 + 0.4 * r.z) * 20) / 20;              // scale pop, in 5% steps
+    var wob = r.st === 'walk' ? Math.sin(T * 10 + r.ph) * 5 : 0;
+    var rot = Math.round((r.h + Math.PI / 2 + wob * Math.PI / 180) / ROT_STEP) * ROT_STEP;
+    var fi = r.st === 'fly' ? Math.floor(T / FLAP_CYCLE * FLAP_N) % FLAP_N : FLAP_N;
+
+    var key = fi + '|' + rot.toFixed(3) + '|' + s;               // only redraw the pixels when something changed
+    if (key !== lastKey && draw(rot, s, fi)) lastKey = key;
+
+    // snap the canvas to the header's pixel grid
+    var tf = 'translate(' + (Math.round((r.x - C * S / 2) / S) * S) + 'px,' + (Math.round((r.y - C * S / 2) / S) * S) + 'px)';
     if (tf !== r.tf) { r.tf = tf; el.style.transform = tf; }
   }
 
