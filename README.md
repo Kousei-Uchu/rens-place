@@ -27,3 +27,12 @@ The cozy, friends-only version of Aspen's site. Plain HTML, CSS and JavaScript: 
 - The page is marked `noindex, nofollow` so search engines leave it alone. Delete that `<meta name="robots">` line in `index.html` if you want it findable.
 - The moth never shows for people who have "reduce motion" turned on.
 - All file paths are relative, so the site works from any folder or sub-path.
+
+## Header studio
+
+`header-studio.html` is the editor for the animated header. Open it locally (see above), build or tweak a design, then download `header-art.js` and put it in `js/`.
+
+- **Elements** (no code needed): add a ready-made piece (sun, clouds, palm tree, gulls, deck, Aspen...) and change its sliders and colours. "Build the site header from elements" recreates today's header, pixel for pixel, as editable pieces.
+- **Move tool**: drag the dots on the canvas to reposition the selected element (yellow) and the scene layout (blue diamonds: horizon, deck corner, shore). Dragging the sun also moves its glitter.
+- **Scene layout**: the shared numbers (horizon, deck, shore, sun position) that many elements use.
+- Under the hood an element is a normal code layer made by `js/header-elements.js`. "Edit as code" turns it into plain code you can edit by hand.

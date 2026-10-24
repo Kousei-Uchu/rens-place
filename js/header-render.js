@@ -123,7 +123,8 @@
         });
       }
       return { id: li + 1, name: String(l.name || 'layer ' + (li + 1)), vis: l.visible !== false, op: l.opacity == null ? 1 : Math.max(0, Math.min(1, +l.opacity)),
-        anim: !code && (gs.length > 1 || !!l.animated), bind: -1, kind: code ? 'code' : 'pixels', code: code ? String(l.code || '') : '', mask: 0, maskInv: !!l.maskInvert, frames: gs, _b: l.bind, _m: l.mask };
+        anim: !code && (gs.length > 1 || !!l.animated), bind: -1, kind: code ? 'code' : 'pixels', code: code ? String(l.code || '') : '', mask: 0, maskInv: !!l.maskInvert, frames: gs, _b: l.bind, _m: l.mask,
+        el: (code && l.element && typeof l.element === 'object') ? { t: String(l.element.type || ''), p: (l.element.params && typeof l.element.params === 'object') ? l.element.params : {} } : null };
     });
     layers.forEach(function (l) { if (l.anim) while (l.frames.length < N) l.frames.push(l.frames[l.frames.length - 1].slice()); });
     var sk = o.skeleton || {}, names = {}, J = (sk.joints || []).map(function (j, i) { names[j.name] = i; return { n: String(j.name), x: +j.x || 0, y: +j.y || 0, p: -1, _p: j.parent }; });
@@ -135,7 +136,7 @@
       if (l._m) { var t = layers.filter(function (x) { return x.name === l._m && x !== l; })[0]; l.mask = t ? t.id : 0; }
       delete l._b; delete l._m;
     });
-    return { w: w, h: h, fps: Math.max(1, Math.min(60, +o.fps || 8)), nf: N, pal: pal, layers: layers, skel: { j: J, poses: poses }, trust: true, hit: o.hit || null };
+    return { w: w, h: h, fps: Math.max(1, Math.min(60, +o.fps || 8)), nf: N, pal: pal, layers: layers, skel: { j: J, poses: poses }, trust: true, hit: o.hit || null, scene: (o.scene && typeof o.scene === 'object') ? o.scene : null };
   }
 
   root.HeaderRender = { hash: hash, M: M, inv: inv, mul: mul, jpos: jpos, posed: posed, layerCanvas: layerCanvas, render: render, draw: draw, decode: decode };

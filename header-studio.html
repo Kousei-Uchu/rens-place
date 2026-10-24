@@ -42,6 +42,17 @@ input[type=number]{width:70px}
 #code{height:230px;white-space:pre;tab-size:2;font:12px/1.35 ui-monospace,monospace;resize:vertical}
 #cerr{color:#ff9a8a}
 .side{flex:0 0 340px}
+.ep{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.ep label{justify-content:space-between}
+.ep .ev{min-width:40px;text-align:right;color:var(--tx)}
+.ep select{max-width:150px}
+.eh{color:var(--am);font-weight:600;margin-top:6px}
+.cl{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.cl input[type=color]{width:28px;height:26px;padding:0;border:0;background:none}
+.cl button{padding:2px 8px}
+.elgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0}
+.sc label{margin:3px 0}
+.sc .ev{min-width:34px;text-align:right;color:var(--tx)}
 </style>
 </head>
 <body>
@@ -67,6 +78,15 @@ input[type=number]{width:70px}
    <div id="layers"></div>
    <div class="bar"><button data-a="addlayer">+ Layer</button><button data-a="addcode">+ Code layer</button><button data-a="preset">Add site scene</button></div>
    <div id="lc"></div>
+  </details>
+  <details open><summary>Elements (no code needed)</summary>
+   <small>Add a ready-made piece, then change its sliders and colours. Pick the Move tool to drag its handles right on the canvas.</small>
+   <div class="elgrid" id="elgrid"></div>
+   <div class="bar"><button data-a="sitebuild" class="on">Build the site header from elements</button></div>
+  </details>
+  <details><summary>Scene layout</summary>
+   <small>Shared by many elements: where the horizon, deck, shore and sun are. The diamond handles on the canvas change the same values.</small>
+   <div class="sc" id="scn"></div>
   </details>
   <details><summary>Encode an image</summary>
    <div class="bar"><label class="btn">Choose image <input type="file" id="im" accept="image/*" hidden></label><button data-a="site">From site header</button></div>
@@ -97,13 +117,14 @@ input[type=number]{width:70px}
 <script src="js/scene.js"></script>
 <script src="js/header-render.js"></script>
 <script src="js/header-presets.js"></script>
+<script src="js/header-elements.js"></script>
 <script>
 (function () {
 'use strict';
 var $ = function (i) { return document.getElementById(i); };
-var HR = window.HeaderRender, HP = window.HeaderPresets, lid = 0, poly = [], T = 0, T0 = performance.now() / 1000;
+var HR = window.HeaderRender, HP = window.HeaderPresets, HE = window.HeaderElements || null, lid = 0, poly = [], T = 0, T0 = performance.now() / 1000;
 var env = { mk: function (w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }, Sprite: window.AspenSprite, wagUntil: 0 };
-var D, cur = 0, fr = 0, tool = 'pen', col = 1, zoom = 4, undo = [], redo = [], enc = null, src = null, selJ = -1, timer = null, down = false, st = null, saveT = 0;
+var D, edrag = null, gest = 0, cur = 0, fr = 0, tool = 'pen', col = 1, zoom = 4, undo = [], redo = [], enc = null, src = null, selJ = -1, timer = null, down = false, st = null, saveT = 0;
 var cv = $('cv');
 var DEF_PAL = ['#251f4d', '#573a76', '#914d86', '#e27a86', '#f7ae7c', '#ffe0a0', '#5a3a29', '#985b3a', '#e8c98a', '#29402e', '#2c3b70', '#fff6cc'];
 function mk(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -114,20 +135,21 @@ function lg(l, f) { return l.frames[l.anim ? Math.min(f, l.frames.length - 1) : 
 
 /* ---------- design state ---------- */
 function newD(w, h) {
-  D = { w: w, h: h, fps: 8, nf: 1, pal: DEF_PAL.slice(), layers: [], skel: { j: [], poses: [{}] }, trust: true };
+  D = { w: w, h: h, fps: 8, nf: 1, pal: DEF_PAL.slice(), layers: [], skel: { j: [], poses: [{}] }, trust: true, scene: HE ? HE.defaultScene() : null };
   addLayer('layer 1'); fr = 0; selJ = -1; enc = null; col = 1;
 }
 function addLayer(name, o) {
   o = o || {};
-  D.layers.push({ id: ++lid, name: name, vis: o.vis !== false, op: 1, anim: false, bind: -1, kind: o.kind || 'pixels', code: o.code || '', mask: 0, maskInv: false, frames: [new Uint16Array(D.w * D.h)] });
+  D.layers.push({ id: ++lid, name: name, vis: o.vis !== false, op: 1, anim: false, bind: -1, kind: o.kind || 'pixels', code: o.code || '', mask: 0, maskInv: false, el: null, frames: [new Uint16Array(D.w * D.h)] });
   cur = D.layers.length - 1; return D.layers[cur];
 }
 function hasCode() { return D.layers.some(function (l) { return l.kind === 'code'; }); }
 function cloneD(d) {
-  return { w: d.w, h: d.h, fps: d.fps, nf: d.nf, pal: d.pal.slice(), skel: JSON.parse(JSON.stringify(d.skel)), trust: d.trust,
-    layers: d.layers.map(function (l) { return { id: l.id, name: l.name, vis: l.vis, op: l.op, anim: l.anim, bind: l.bind, kind: l.kind, code: l.code, mask: l.mask, maskInv: l.maskInv, frames: l.frames.map(function (g) { return g.slice(); }) }; }) };
+  return { w: d.w, h: d.h, fps: d.fps, nf: d.nf, pal: d.pal.slice(), skel: JSON.parse(JSON.stringify(d.skel)), trust: d.trust, scene: d.scene ? JSON.parse(JSON.stringify(d.scene)) : null,
+    layers: d.layers.map(function (l) { return { id: l.id, name: l.name, vis: l.vis, op: l.op, anim: l.anim, bind: l.bind, kind: l.kind, code: l.code, mask: l.mask, maskInv: l.maskInv, el: l.el ? { t: l.el.t, p: JSON.parse(JSON.stringify(l.el.p)) } : null, frames: l.frames.map(function (g) { return g.slice(); }) }; }) };
 }
 function snap() { undo.push({ d: cloneD(D), cur: cur, fr: fr }); if (undo.length > 30) undo.shift(); redo = []; }
+function gsnap() { var n = Date.now(); if (n - gest > 800) snap(); gest = n; }
 function restore(s) { D = cloneD(s.d); cur = Math.min(s.cur, D.layers.length - 1); fr = Math.min(s.fr, D.nf - 1); enc = null; selJ = Math.min(selJ, D.skel.j.length - 1); refresh(); }
 function doUndo() { if (!undo.length) return; redo.push({ d: cloneD(D), cur: cur, fr: fr }); restore(undo.pop()); }
 function doRedo() { if (!redo.length) return; undo.push({ d: cloneD(D), cur: cur, fr: fr }); restore(redo.pop()); }
@@ -177,6 +199,7 @@ function draw() {
     var p = jpos(i, fr); if (J.p >= 0) { var q = jpos(J.p, fr); x.strokeStyle = '#ffd24a'; x.lineWidth = 2; x.beginPath(); x.moveTo(q[0] * z, q[1] * z); x.lineTo(p[0] * z, p[1] * z); x.stroke(); }
     x.fillStyle = i === selJ ? '#ff4a4a' : '#fff'; x.strokeStyle = '#000'; x.lineWidth = 1; x.beginPath(); x.arc(p[0] * z, p[1] * z, Math.max(3, z * .6), 0, 6.3); x.fill(); x.stroke();
   });
+  if (tool === 'elem' && HE) drawHandles(x, z);
   var ce = $('cerr'); if (ce) ce.textContent = cl.err ? 'Error: ' + cl.err : '';
 }
 function put(g, x, y, v) { if (x >= 0 && y >= 0 && x < D.w && y < D.h) g[y * D.w + x] = v; }
@@ -206,6 +229,7 @@ function pos(e) { var r = cv.getBoundingClientRect(); return [Math.floor((e.clie
 cv.addEventListener('pointerdown', function (e) {
   e.preventDefault(); var p = pos(e); if (p[0] < 0 || p[1] < 0 || p[0] >= D.w || p[1] >= D.h) return;
   if (tool === 'joint') return jointClick(e, p);
+  if (tool === 'elem') return elemDown(e);
   var l = L(), g = lg(l, fr), v = tool === 'erase' ? 0 : col;
   if (l.kind === 'code') return msg('This is a code layer. Edit its code, or press Bake to pixels to paint on it.', true);
   if (tool === 'poly') { var last = poly[poly.length - 1]; if (poly.length > 2 && Math.abs(poly[0][0] - p[0]) + Math.abs(poly[0][1] - p[1]) <= 1) return polyClose(); if (!last || last[0] !== p[0] || last[1] !== p[1]) poly.push(p); ui(); draw(); return; }
@@ -217,12 +241,13 @@ cv.addEventListener('pointerdown', function (e) {
   draw();
 });
 cv.addEventListener('pointermove', function (e) {
+  if (edrag) return elemMove(e);
   if (!down) return; var p = pos(e), g = lg(L(), fr), v = tool === 'erase' ? 0 : col;
   if (tool === 'pen' || tool === 'erase') { line(g, st.l[0], st.l[1], p[0], p[1], v); st.l = p; }
   else if (tool === 'line' || tool === 'rect') { g.set(st.g); (tool === 'line' ? line : rect)(g, st.s[0], st.s[1], p[0], p[1], v); }
   draw();
 });
-function up() { if (down) { down = false; save(); } }
+function up() { if (edrag) { edrag = null; refresh(); return; } if (down) { down = false; save(); } }
 cv.addEventListener('dblclick', function () { if (tool === 'poly') polyClose(); });
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
@@ -363,9 +388,10 @@ function uniq() {
 function toJSON() {
   var S = D.skel, nm = uniq();
   return { format: 'rens-header/3', w: D.w, h: D.h, fps: D.fps, frames: D.nf, palette: D.pal.slice(),
+    scene: HE && D.layers.some(function (l) { return l.el; }) ? D.scene : undefined,
     layers: D.layers.map(function (l, i) {
       var mk0 = l.mask ? D.layers.filter(function (o) { return o.id === l.mask; })[0] : null, mi = mk0 ? nm[D.layers.indexOf(mk0)] : null;
-      if (l.kind === 'code') return { name: nm[i], type: 'code', visible: l.vis, opacity: l.op, mask: mi, maskInvert: !!l.maskInv, code: l.code };
+      if (l.kind === 'code') return { name: nm[i], type: 'code', visible: l.vis, opacity: l.op, mask: mi, maskInvert: !!l.maskInv, code: l.code, element: l.el ? { type: l.el.t, params: l.el.p } : undefined };
       return { name: nm[i], type: 'pixels', visible: l.vis, opacity: l.op, mask: mi, maskInvert: !!l.maskInv, animated: l.anim, bind: l.bind >= 0 ? S.j[l.bind].n : null, frames: l.frames.map(rowsOf) };
     }),
     skeleton: { joints: S.j.map(function (J) { return { name: J.n, x: J.x, y: J.y, parent: J.p >= 0 ? S.j[J.p].n : null }; }),
@@ -374,6 +400,7 @@ function toJSON() {
 function fromJSON(o) {
   var nd = HR.decode(o); D = nd; cur = D.layers.length - 1; fr = 0; selJ = -1; enc = null; col = 1; undo = []; redo = []; poly = [];
   lid = D.layers.reduce(function (m, l) { return Math.max(m, l.id); }, 0);
+  if (HE) HE.adopt(D);
 }
 function parseText(t) { var a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('no JSON found in that text'); return JSON.parse(t.slice(a, b + 1)); }
 function adopt(o) { snap0(); fromJSON(o); D.trust = !hasCode(); $('cw').value = D.w; $('ch').value = D.h; refresh(); if (hasCode()) msg('This design has code layers. They are paused until you read them and press Run code layers.', true); }
@@ -407,6 +434,7 @@ function skill() {
 '- A layer with animated false has exactly one frame, shown on every animation frame. A layer with animated true has exactly "frames" frames.',
 '- Layer "type" is "pixels" (the default, with frames) or "code" (see below). Any layer may have "mask":"other layer name": it is then drawn only where that layer has pixels (a pixel layer: any non-"." pixel; a code layer: wherever it draws). "maskInvert":true flips this. Mask layers are normally "visible":false.',
 '- A code layer has "code": the BODY of a JavaScript function(ctx, t, api) that runs about 12 times per second. ctx is a 2D canvas context api.w x api.h pixels (api.w can be wider than the design w on wide screens, so place things relative to api.w and reuse api.h). t is time in seconds. Draw whole-pixel solid colours only. Helpers: api.hash(a,b,c) gives repeatable noise 0..1; api.px(ctx,x,y,colour); api.rect(ctx,x,y,w,h,colour); api.disc(ctx,cx,cy,r,colour,clipY); api.halo(ctx,cx,cy,r,colour,parity,clipY) is a dithered disc; api.mk(w,h) makes a canvas; api.S is an object that survives between frames, so cache expensive work there (build a canvas once, then ctx.drawImage it); api.Sprite builds Aspen. Code runs unsandboxed in the page: only draw, never touch the network, storage or the DOM.',
+'- A code layer made with the studio Elements panel also has "element": {"type", "params"}, and the file then has a top-level "scene". Only the studio uses these, to show sliders and drag handles again. You can ignore them. If you change such a layer\'s code, the studio notices the code no longer matches its settings and keeps your code as plain code. Editing params alone does nothing, so change the code.',
 '- skeleton (optional): joints [{name,x,y,parent}] in canvas pixels at rest (parent is null for the root). poses is a list with one object per animation frame, mapping joint name to a rotation in degrees (clockwise, about that joint, children follow). A layer with "bind":"jointname" moves rigidly with that joint.', '',
 '## How to work',
 '0. Existing code layers are working examples of the style: read them before writing new ones.',
@@ -429,13 +457,80 @@ function doZip() {
 }
 function doPng() { var c = comp(fr), z = Math.max(1, Math.floor(1280 / D.w)), big = mk(D.w * z, D.h * z), x = big.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, big.width, big.height); big.toBlob(function (b) { dl('header.png', b); }); }
 
+/* ---------- elements: ready-made pieces with settings and drag handles ---------- */
+function regenAll() { if (HE) HE.regen(D); }
+function addElement(t, over, at) {
+  var d = HE.types[t], el = { t: t, p: HE.clean(t, Object.assign(HE.defaults(t), over || {})) }, name = d.label, n = 2;
+  while (D.layers.some(function (o) { return o.name === name; })) name = d.label + ' ' + n++;
+  var l = addLayer(name, { kind: 'code', code: HE.gen(el, D.scene) }); l.el = el;
+  if (at != null && at < D.layers.length - 1) { D.layers.pop(); D.layers.splice(at, 0, l); cur = at; }
+  return l;
+}
+function buildSite() {
+  if (!HE) return;
+  if (!confirm('Replace all layers with the site header built from editable elements? Undo can bring your old layers back.')) return;
+  snap(); D.layers = []; D.scene = HE.defaultScene();
+  HE.site().forEach(function (e) { var l = addElement(e.t, e.p); l.name = e.name; });
+  D.trust = true; cur = D.layers.length - 1; refresh(); msg('Built the header from ' + D.layers.length + ' elements. Pick the Move tool and drag things around.');
+}
+function ectx() { return { W: D.w, H: D.h, T: T, sprite: window.AspenSprite }; }
+function allHandles() {
+  var out = [], c = ectx();
+  D.layers.forEach(function (l, i) {
+    if (!l.el || !l.vis || !HE.types[l.el.t]) return;
+    HE.types[l.el.t].handles(l.el.p, D.scene, c).forEach(function (h) { out.push({ li: i, id: h.id, x: h.x, y: h.y, l: h.l }); });
+  });
+  HE.sceneHandles(D.scene, c).forEach(function (h) { out.push({ li: -1, id: h.id, x: h.x, y: h.y, l: h.l }); });
+  return out;
+}
+function drawHandles(x, z) {
+  x.font = '11px system-ui,sans-serif'; x.textBaseline = 'middle';
+  allHandles().forEach(function (h) {
+    var sx = h.x * z, sy = h.y * z, sel = h.li === cur, sc = h.li < 0;
+    x.lineWidth = 2; x.strokeStyle = '#000'; x.fillStyle = sc ? '#6fd3ff' : sel ? '#ffd24a' : '#ffffff'; x.beginPath();
+    if (sc) { x.moveTo(sx, sy - 7); x.lineTo(sx + 7, sy); x.lineTo(sx, sy + 7); x.lineTo(sx - 7, sy); x.closePath(); } else x.arc(sx, sy, sel ? 7 : 5, 0, 6.3);
+    x.fill(); x.stroke();
+    if (sel || sc) {
+      var tw = x.measureText(h.l).width, lx = sx + 11 + tw + 8 > cv.width ? sx - 11 - tw - 8 : sx + 11;
+      x.fillStyle = 'rgba(0,0,0,.72)'; x.fillRect(lx, sy - 8, tw + 8, 16); x.fillStyle = '#fff'; x.fillText(h.l, lx + 4, sy);
+    }
+  });
+}
+function elemDown(e) {
+  if (!HE) return;
+  var r = cv.getBoundingClientRect(), k = r.width / D.w, mx = (e.clientX - r.left) / k, my = (e.clientY - r.top) / k, best = null, bd = 1e9;
+  allHandles().forEach(function (h) { var d = Math.hypot(h.x - mx, h.y - my) * k; if (h.li === cur) d -= 4; if (d < bd) { bd = d; best = h; } });
+  if (!best || bd > 12) return;
+  snap(); if (best.li >= 0) cur = best.li;
+  cv.setPointerCapture(e.pointerId); edrag = { li: best.li, id: best.id }; ui(); draw();
+}
+function elemMove(e) {
+  var r = cv.getBoundingClientRect(), k = r.width / D.w, x = (e.clientX - r.left) / k, y = (e.clientY - r.top) / k, c = ectx();
+  if (edrag.li < 0) HE.dragScene(D.scene, edrag.id, x, y, c);
+  else { var l = D.layers[edrag.li]; if (!l || !l.el) return; HE.types[l.el.t].drag(l.el.p, D.scene, edrag.id, x, y, c); }
+  regenAll(); draw();
+}
+function elPanel(l) {
+  var d = HE.types[l.el.t], p = l.el.p, h = '<div class="ep"><small>' + esc(d.label) + ' element. Change these, or pick the Move tool and drag its handles on the canvas.</small>';
+  d.params.forEach(function (q) {
+    if (q.h) { h += '<div class="eh">' + esc(q.h) + '</div>'; return; }
+    var v = p[q.k];
+    if (q.t === 'n') h += '<label>' + esc(q.l) + '<input type="range" min="' + q.min + '" max="' + q.max + '" step="' + q.step + '" value="' + v + '" data-in="ep:' + q.k + '"><span class="ev">' + v + '</span></label>';
+    else if (q.t === 'c') h += '<label>' + esc(q.l) + '<input type="color" value="' + v + '" data-in="epk:' + q.k + '"></label>';
+    else if (q.t === 'b') h += '<label><input type="checkbox" data-in="epb:' + q.k + '"' + (v ? ' checked' : '') + '> ' + esc(q.l) + '</label>';
+    else if (q.t === 's') h += '<label>' + esc(q.l) + '<select data-in="eps:' + q.k + '">' + q.o.map(function (o) { return '<option value="' + o[0] + '"' + (String(v) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>';
+    else if (q.t === 'cs') h += '<div class="eh">' + esc(q.l) + '</div><div class="cl">' + v.map(function (c, i) { return '<input type="color" value="' + c + '" data-in="epc:' + q.k + ':' + i + '">'; }).join('') + '<button data-a="epadd:' + q.k + '" title="add a colour">+</button><button data-a="epdel:' + q.k + ':' + (v.length - 1) + '" title="remove the last colour">&minus;</button></div>';
+  });
+  return h + '<div id="cerr"></div><div class="bar"><button data-a="epreset">Reset settings</button><button data-a="epcode">Edit as code</button><button data-a="bakecode">Bake to pixels</button></div></div>';
+}
+
 /* ---------- panels ---------- */
 function ui() {
-  $('tools').innerHTML = [['pen', 'Pen'], ['erase', 'Erase'], ['fill', 'Fill'], ['pick', 'Pick'], ['line', 'Line'], ['rect', 'Rect'], ['poly', 'Poly'], ['joint', 'Joint']].map(function (t) { return '<button data-a="tool:' + t[0] + '"' + (tool === t[0] ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + (tool === 'poly' ? '<button data-a="polyclose"' + (poly.length > 2 ? '' : ' disabled') + '>Close shape</button><button data-a="polyundo">Cancel shape</button>' : '');
+  $('tools').innerHTML = [['pen', 'Pen'], ['erase', 'Erase'], ['fill', 'Fill'], ['pick', 'Pick'], ['line', 'Line'], ['rect', 'Rect'], ['poly', 'Poly'], ['joint', 'Joint']].concat(HE ? [['elem', 'Move']] : []).map(function (t) { return '<button data-a="tool:' + t[0] + '"' + (tool === t[0] ? ' class="on"' : '') + '>' + t[1] + '</button>'; }).join('') + (tool === 'poly' ? '<button data-a="polyclose"' + (poly.length > 2 ? '' : ' disabled') + '>Close shape</button><button data-a="polyundo">Cancel shape</button>' : '');
   $('pal').innerHTML = D.pal.map(function (h, i) { return '<button class="sw' + (col === i + 1 ? ' on' : '') + '" data-a="col:' + (i + 1) + '" style="background:' + h + '"></button>'; }).join('');
   if ($('cc').value !== D.pal[col - 1]) $('cc').value = D.pal[col - 1] || '#000000';
   $('layers').innerHTML = D.layers.map(function (l, i) { return i; }).reverse().map(function (i) {
-    var l = D.layers[i]; return '<div class="ly' + (i === cur ? ' on' : '') + '" data-a="sel:' + i + '"><input type="checkbox" data-in="vis:' + i + '"' + (l.vis ? ' checked' : '') + '><span class="nm">' + esc(l.name) + '</span>' + (l.kind === 'code' ? '<i>code</i>' : '') + (l.anim ? '<i>anim</i>' : '') + (l.bind >= 0 ? '<i>rig</i>' : '') + (l.mask ? '<i>masked</i>' : '') + (D.layers.some(function (o) { return o.mask === l.id; }) ? '<i>mask</i>' : '') + '</div>';
+    var l = D.layers[i]; return '<div class="ly' + (i === cur ? ' on' : '') + '" data-a="sel:' + i + '"><input type="checkbox" data-in="vis:' + i + '"' + (l.vis ? ' checked' : '') + '><span class="nm">' + esc(l.name) + '</span>' + (l.el ? '<i>element</i>' : l.kind === 'code' ? '<i>code</i>' : '') + (l.anim ? '<i>anim</i>' : '') + (l.bind >= 0 ? '<i>rig</i>' : '') + (l.mask ? '<i>masked</i>' : '') + (D.layers.some(function (o) { return o.mask === l.id; }) ? '<i>mask</i>' : '') + '</div>';
   }).join('');
   var l = L(), isC = l.kind === 'code', jo = '<option value="-1">none</option>' + D.skel.j.map(function (J, i) { return '<option value="' + i + '"' + (l.bind === i ? ' selected' : '') + '>' + esc(J.n) + '</option>'; }).join('');
   var mo = '<option value="0">none</option>' + D.layers.filter(function (o) { return o !== l; }).map(function (o) { return '<option value="' + o.id + '"' + (l.mask === o.id ? ' selected' : '') + '>' + esc(o.name) + '</option>'; }).join('');
@@ -443,12 +538,16 @@ function ui() {
     '<label>Opacity <input type="range" min="0" max="100" value="' + Math.round(l.op * 100) + '" data-in="op"></label>' +
     '<div class="bar"><button data-a="up">Up</button><button data-a="dn">Down</button><button data-a="dup">Duplicate</button><button data-a="ren">Rename</button><button data-a="del">Delete</button>' + (isC ? '' : '<button data-a="clr">Clear</button>') + '</div>' +
     '<div class="bar"><label>Mask to <select data-in="mask">' + mo + '</select></label><label><input type="checkbox" data-in="minv"' + (l.maskInv ? ' checked' : '') + '> Invert</label><button data-a="newmask">New mask layer</button></div>' +
-    (isC ? '<textarea id="code" data-in="code" spellcheck="false">' + esc(l.code) + '</textarea><div id="cerr"></div><small>function (ctx, t, api) body. See SKILL.md in the zip for api.</small><div class="bar"><button data-a="bakecode">Bake to pixels</button></div>' :
+    (l.el && HE ? elPanel(l) : isC ? '<textarea id="code" data-in="code" spellcheck="false">' + esc(l.code) + '</textarea><div id="cerr"></div><small>function (ctx, t, api) body. See SKILL.md in the zip for api.</small><div class="bar"><button data-a="bakecode">Bake to pixels</button></div>' :
       '<div class="bar"><button data-a="mv:-1,0">&larr;</button><button data-a="mv:0,-1">&uarr;</button><button data-a="mv:0,1">&darr;</button><button data-a="mv:1,0">&rarr;</button><label><input type="checkbox" data-in="anim"' + (l.anim ? ' checked' : '') + '> Animated</label></div>' +
       '<div class="bar"><label>Bind to <select data-in="bind">' + jo + '</select></label>' + (l.bind >= 0 ? '<button data-a="bake">Bake into pixels</button>' : '') + '</div>');
   $('fbar').innerHTML = '<button data-a="fp">&lsaquo;</button><span>Frame ' + (fr + 1) + ' / ' + D.nf + '</span><button data-a="fn">&rsaquo;</button><button data-a="fa">+ Frame (copy)</button><button data-a="fd">Delete frame</button><button data-a="play"' + (timer ? ' class="on"' : '') + '>' + (timer ? 'Stop' : 'Play') + '</button><label>fps <input type="number" min="1" max="60" value="' + D.fps + '" data-in="fps"></label>';
   $('joints').innerHTML = D.skel.j.map(function (J, i) { return '<button data-a="js:' + i + '"' + (i === selJ ? ' class="on"' : '') + '>' + esc(J.n) + '</button>'; }).join('') || '<small>No joints yet.</small>';
   $('jc').innerHTML = selJ >= 0 && D.skel.j[selJ] ? '<label>Rotate (frame ' + (fr + 1) + ') <input type="range" min="-180" max="180" value="' + ((D.skel.poses[fr] || {})[selJ] || 0) + '" data-in="rot"></label><div class="bar"><button data-a="jreset">Reset pose</button><button data-a="jdel">Delete joint</button></div>' : '';
+  if (HE) {
+    $('elgrid').innerHTML = HE.order.map(function (t) { return '<button data-a="addel:' + t + '">+ ' + esc(HE.types[t].label) + '</button>'; }).join('');
+    $('scn').innerHTML = HE.sceneSchema.map(function (q) { var mx = q.y ? Math.max(q.min + 1, D.h) : q.max; return '<label>' + esc(q.l) + '<input type="range" min="' + q.min + '" max="' + mx + '" value="' + D.scene[q.k] + '" data-in="sc:' + q.k + '"><span class="ev">' + D.scene[q.k] + '</span></label>'; }).join('');
+  }
   $('ewv').textContent = $('ew').value; $('ecv').textContent = $('ec').value;
   $('z').value = zoom;
 }
@@ -482,6 +581,12 @@ function act(a, el) {
     cur = D.layers.indexOf(made[0]); refresh();
   }
   else if (k === 'trust') { D.trust = true; refresh(); }
+  else if (k === 'addel') { if (!HE) return; snap(); addElement(v, null, cur + 1); refresh(); }
+  else if (k === 'sitebuild') buildSite();
+  else if (k === 'epcode') { if (!l.el) return; snap(); l.el = null; refresh(); msg('Now it is plain code. Edit it in the box.'); }
+  else if (k === 'epreset') { if (!l.el) return; snap(); l.el.p = HE.defaults(l.el.t); regenAll(); refresh(); }
+  else if (k === 'epadd') { if (!l.el || !Array.isArray(l.el.p[v]) || l.el.p[v].length >= 40) return; snap(); l.el.p[v].push(l.el.p[v][l.el.p[v].length - 1]); regenAll(); refresh(); }
+  else if (k === 'epdel') { if (!l.el || !Array.isArray(l.el.p[v]) || l.el.p[v].length < 2) return; snap(); l.el.p[v].splice(+p[2], 1); regenAll(); refresh(); }
   else if (k === 'polyclose') polyClose();
   else if (k === 'polyundo') { poly = []; ui(); draw(); }
   else if (k === 'newmask') {
@@ -515,7 +620,11 @@ function act(a, el) {
 document.addEventListener('click', function (e) { if (e.target.matches('input')) return; var t = e.target.closest('[data-a]'); if (t) act(t.getAttribute('data-a'), t); });
 document.addEventListener('input', function (e) {
   var t = e.target, k = (t.getAttribute('data-in') || '').split(':'), l = L(); if (!k[0]) return;
-  if (k[0] === 'op') { l.op = t.value / 100; draw(); save(); }
+  if (k[0] === 'sc' && HE) { gsnap(); D.scene[k[1]] = +t.value; regenAll(); if (t.nextElementSibling) t.nextElementSibling.textContent = t.value; draw(); save(); }
+  else if (l.el && HE && k[0] === 'ep') { gsnap(); l.el.p[k[1]] = +t.value; regenAll(); if (t.nextElementSibling) t.nextElementSibling.textContent = t.value; draw(); save(); }
+  else if (l.el && HE && k[0] === 'epk') { gsnap(); l.el.p[k[1]] = t.value; regenAll(); draw(); save(); }
+  else if (l.el && HE && k[0] === 'epc') { gsnap(); l.el.p[k[1]][+k[2]] = t.value; regenAll(); draw(); save(); }
+  else if (k[0] === 'op') { l.op = t.value / 100; draw(); save(); }
   else if (k[0] === 'rot') { var po = D.skel.poses[fr] = D.skel.poses[fr] || {}; po[selJ] = +t.value; draw(); save(); }
   else if (k[0] === 'enc') { $('ewv').textContent = $('ew').value; $('ecv').textContent = $('ec').value; clearTimeout(act.et); act.et = setTimeout(encode, 120); }
   else if (k[0] === 'code') { l.code = t.value; draw(); save(); }
@@ -523,7 +632,9 @@ document.addEventListener('input', function (e) {
 });
 document.addEventListener('change', function (e) {
   var t = e.target, k = (t.getAttribute('data-in') || '').split(':'), l = L(); if (!k[0]) return;
-  if (k[0] === 'vis') { snap(); D.layers[+k[1]].vis = t.checked; refresh(); }
+  if (l.el && HE && k[0] === 'epb') { snap(); l.el.p[k[1]] = t.checked; regenAll(); refresh(); }
+  else if (l.el && HE && k[0] === 'eps') { snap(); l.el.p[k[1]] = t.value; regenAll(); refresh(); }
+  else if (k[0] === 'vis') { snap(); D.layers[+k[1]].vis = t.checked; refresh(); }
   else if (k[0] === 'mask') { snap(); l.mask = +t.value; refresh(); }
   else if (k[0] === 'minv') { snap(); l.maskInv = t.checked; refresh(); }
   else if (k[0] === 'bind') { snap(); l.bind = +t.value; refresh(); }
